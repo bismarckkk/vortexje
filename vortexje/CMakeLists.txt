@@ -1,3 +1,6 @@
+include_directories(../)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 add_subdirectory(boundary-layers)
 add_subdirectory(empirical-wakes)
 add_subdirectory(surface-loaders)
@@ -39,6 +42,12 @@ add_library(vortexje SHARED ${SRCS}
     $<TARGET_OBJECTS:shape-generators>
     $<TARGET_OBJECTS:airfoils>
     $<TARGET_OBJECTS:rply>)
+
+
+target_link_libraries(
+	vortexje
+	OpenMP::OpenMP_CXX
+)
 
 install (TARGETS vortexje DESTINATION lib)
 install (FILES ${HDRS} DESTINATION include/vortexje)

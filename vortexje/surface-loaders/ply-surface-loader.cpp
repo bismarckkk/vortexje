@@ -136,6 +136,8 @@ PLYSurfaceLoader::read_panel_node(int index, int length, int node)
     if (index == length - 1) {
         // This is the last node.  Process panel.
         surface->panel_nodes.push_back(current_panel_nodes);
+        surface->panel_velocity.emplace_back(0, 0, 0);
+        surface->panel_velocity_inflow.emplace_back(0, 0, 0);
         
         current_panel_nodes.clear();
         

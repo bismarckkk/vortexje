@@ -133,6 +133,8 @@ GmshSurfaceLoader::load(shared_ptr<Surface> surface, const string &filename)
             }
 
             surface->panel_nodes.push_back(single_panel_nodes);
+            surface->panel_velocity.emplace_back(0, 0, 0);
+            surface->panel_velocity_inflow.emplace_back(0, 0, 0);
             
             current_panel++;
         }  

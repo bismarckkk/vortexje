@@ -266,9 +266,7 @@ Body::set_rotational_velocity(const Vector3d &rotational_velocity)
 Vector3d
 Body::panel_kinematic_velocity(const std::shared_ptr<Surface> &surface, int panel) const
 {
-    const Vector3d &panel_position = surface->panel_collocation_point(panel, false);
-    Vector3d r = panel_position - position;
-    return velocity + rotational_velocity.cross(r);
+    return surface->panel_velocity[panel] + surface->panel_velocity_inflow[panel];
 }
 
 /**
@@ -282,6 +280,13 @@ Body::panel_kinematic_velocity(const std::shared_ptr<Surface> &surface, int pane
 Vector3d
 Body::node_kinematic_velocity(const std::shared_ptr<Surface> &surface, int node) const
 {
-    Vector3d r = surface->nodes[node] - position;
-    return velocity + rotational_velocity.cross(r);
+    auto panels = *surface->node_panel_neighbors[node];
+    Vector3d vel = Vector3d::Zero();
+    double length = 0.0;
+    for (auto panel : panels) {
+        double len = (surface->panel_collocation_point(panel, false) - surface->nodes[node]).norm();
+        vel += panel_kinematic_velocity(surface, panel) / len;
+        length += len;
+    }
+    return vel / length;
 }

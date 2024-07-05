@@ -58,6 +58,8 @@ Wake::add_layer()
             
             int panel = n_panels();
             panel_nodes.push_back(vertices);
+            panel_velocity.emplace_back(0, 0, 0);
+            panel_velocity_inflow.emplace_back(0, 0, 0);
         
             vector<vector<pair<int, int> > > local_panel_neighbors;
             local_panel_neighbors.resize(vertices.size());

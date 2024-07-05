@@ -56,6 +56,8 @@ public:
     int n_nodes() const;
     int n_panels() const;
 
+    void update_nodes(std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > &new_nodes);
+
     /**
        Node number to point map.
     */
@@ -69,11 +71,14 @@ public:
        required by the panel flattening procedure.
     */
     std::vector<std::shared_ptr<std::vector<int> > > node_panel_neighbors;
-    
+
     /**
        Panel number to comprising vertex numbers map.
     */
     std::vector<std::vector<int> > panel_nodes;
+
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > panel_velocity;
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > panel_velocity_inflow;
     
     /**
        Panel number to (edge number to (neighboring panel number, edge number)-list) map.

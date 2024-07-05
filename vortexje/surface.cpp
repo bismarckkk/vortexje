@@ -62,6 +62,8 @@ Surface::add_triangle(int node_a, int node_b, int node_c)
     
     int panel_id = panel_nodes.size();
     panel_nodes.push_back(single_panel_nodes);
+    panel_velocity.emplace_back(0, 0, 0);
+    panel_velocity_inflow.emplace_back(0, 0, 0);
     
     node_panel_neighbors[node_a]->push_back(panel_id);
     node_panel_neighbors[node_b]->push_back(panel_id);
@@ -94,6 +96,8 @@ Surface::add_quadrangle(int node_a, int node_b, int node_c, int node_d)
     
     int panel_id = panel_nodes.size();
     panel_nodes.push_back(single_panel_nodes);
+    panel_velocity.emplace_back(0, 0, 0);
+    panel_velocity_inflow.emplace_back(0, 0, 0);
     
     node_panel_neighbors[node_a]->push_back(panel_id);
     node_panel_neighbors[node_b]->push_back(panel_id);
@@ -806,4 +810,13 @@ Vector3d
 Surface::vortex_ring_unit_velocity(const std::shared_ptr<Surface> &other, int other_panel, int this_panel) const
 {
     return vortex_ring_unit_velocity(other->panel_collocation_point(other_panel, true), this_panel);
+}
+
+void Surface::update_nodes(vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &new_nodes) {
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> cp(panel_collocation_points[0]);
+    nodes.swap(new_nodes);
+    compute_geometry();
+    for (int i = 0; i < n_panels(); i++) {
+        panel_velocity[0] = panel_collocation_points[0][i] - cp[i];
+    }
 }

@@ -51,8 +51,6 @@ LiftingSurfaceBuilder::create_panels_inside_airfoil(const vector<int> &airfoil_n
         int middle_node_id = lifting_surface.nodes.size();
 
         lifting_surface.nodes.push_back(middle_point);
-        lifting_surface.node_velocity.emplace_back(0, 0, 0);
-        lifting_surface.node_velocity_inflow.emplace_back(0, 0, 0);
         
         shared_ptr<vector<int> > empty_vector = make_shared<vector<int> >();
         lifting_surface.node_panel_neighbors.push_back(empty_vector);

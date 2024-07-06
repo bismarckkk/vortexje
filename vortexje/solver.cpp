@@ -615,7 +615,7 @@ Solver::initialize_wakes(double dt)
             for (int i = 0; i < d->lifting_surface->n_spanwise_nodes(); i++) {
                 if (Parameters::convect_wake) {
                     // Convect wake nodes that coincide with the trailing edge.
-                    d->wake->nodes[i] += compute_trailing_edge_vortex_displacement(bd->body, d->lifting_surface, i, dt);
+                    d->wake->nodes[i] += compute_trailing_edge_vortex_displacement(bd->body, d->lifting_surface, i, d->wake->nodes[i], dt);
                     
                 } else {
                     // Initialize static wake->
@@ -1044,8 +1044,9 @@ Solver::update_wakes(double dt)
                 int n_wakes = d->wake->n_nodes() / d->lifting_surface->n_spanwise_nodes();
                 for (int i = 0; i < d->lifting_surface->n_spanwise_nodes(); i++) {                                                  
                     for (int j = 0; j < n_wakes; j++) {
-                        auto dl = compute_trailing_edge_vortex_displacement(bd->body, d->lifting_surface, i, dt);
-                        d->wake->nodes[j * d->lifting_surface->n_spanwise_nodes() + i] += dl;
+                        auto& _node = d->wake->nodes[j * d->lifting_surface->n_spanwise_nodes() + i];
+                        auto dl = compute_trailing_edge_vortex_displacement(bd->body, d->lifting_surface, i, _node, dt);
+                        _node += dl;
                     }
                 }                
                 
@@ -1746,9 +1747,9 @@ Solver::compute_velocity(const Eigen::Vector3d &x) const
    @returns The trailing edge vortex displacement.
 */
 Eigen::Vector3d
-Solver::compute_trailing_edge_vortex_displacement(const std::shared_ptr<Body> &body, const std::shared_ptr<LiftingSurface> &lifting_surface, int index, double dt) const
+Solver::compute_trailing_edge_vortex_displacement(const std::shared_ptr<Body> &body, const std::shared_ptr<LiftingSurface> &lifting_surface, int index, const Vector3d& point, double dt) const
 {
-    Vector3d apparent_velocity = body->node_kinematic_velocity(lifting_surface, lifting_surface->trailing_edge_node(index)) - freestream_velocity;
+    Vector3d apparent_velocity = body->kinematic_velocity(point) - freestream_velocity;
                     
     Vector3d wake_emission_velocity = lifting_surface->wake_emission_velocity(apparent_velocity, index);
     

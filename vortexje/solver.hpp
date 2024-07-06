@@ -187,7 +187,7 @@ private:
     
     double compute_velocity_potential(const Eigen::Vector3d &x) const;
     
-    Eigen::Vector3d compute_trailing_edge_vortex_displacement(const std::shared_ptr<Body> &body, const std::shared_ptr<LiftingSurface> &lifting_surface, int index, double dt) const;
+    Eigen::Vector3d compute_trailing_edge_vortex_displacement(const std::shared_ptr<Body> &body, const std::shared_ptr<LiftingSurface> &lifting_surface, int index, const Eigen::Vector3d& point, double dt) const;
 
     Eigen::Vector3d compute_scalar_field_gradient(const Eigen::VectorXd &scalar_field, const std::shared_ptr<Body> &body, const std::shared_ptr<Surface> &surface, int panel) const;
     

@@ -62,7 +62,6 @@ public:
        Node number to point map.
     */
     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > nodes;
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > old_nodes;
     
     /**
        Node number to neigboring panel numbers map.
@@ -77,9 +76,6 @@ public:
        Panel number to comprising vertex numbers map.
     */
     std::vector<std::vector<int> > panel_nodes;
-
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > node_velocity;
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > node_velocity_inflow;
 
     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > panel_velocity;
     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > panel_velocity_inflow;

@@ -269,16 +269,7 @@ Body::panel_kinematic_velocity(const std::shared_ptr<Surface> &surface, int pane
     return surface->panel_velocity[panel] + surface->panel_velocity_inflow[panel];
 }
 
-/**
-   Computes the kinematic velocity of the given node.
-   
-   @param[in]   surface   Surface, belonging to this body. 
-   @param[in]   node      Node, belonging to this surface.
-   
-   @return The kinematic velocity.
-*/
-Vector3d
-Body::node_kinematic_velocity(const std::shared_ptr<Surface> &surface, int node) const
-{
-    return surface->node_velocity[node] + surface->node_velocity_inflow[node];
+Eigen::Vector3d Body::kinematic_velocity(const Vector3d &point) const {
+    Vector3d vel = velocity + rotational_velocity.cross(point - position);
+    return vel;
 }

@@ -43,8 +43,6 @@ SurfaceBuilder::create_nodes_for_points(const vector<Vector3d, Eigen::aligned_al
         int node_id = surface.nodes.size();
         
         surface.nodes.push_back(points[i]);
-        surface.node_velocity.emplace_back(0, 0, 0);
-        surface.node_velocity_inflow.emplace_back(0, 0, 0);
         
         shared_ptr<vector<int> > empty_vector = make_shared<vector<int> >();
         surface.node_panel_neighbors.push_back(empty_vector);
@@ -160,8 +158,6 @@ SurfaceBuilder::create_panels_between_shapes(const vector<int> &first_nodes, con
                     new_nodes[j] = surface.nodes.size();
                     
                     surface.nodes.push_back(vertices[j]);
-                    surface.node_velocity.emplace_back(0, 0, 0);
-                    surface.node_velocity_inflow.emplace_back(0, 0, 0);
                     
                     surface.node_panel_neighbors.push_back(surface.node_panel_neighbors[unique_nodes[j]]);
                 }
@@ -203,8 +199,6 @@ SurfaceBuilder::create_panels_inside_shape(const vector<int> &nodes, const Vecto
     int tip_node = surface.nodes.size();
 
     surface.nodes.push_back(tip_point);
-    surface.node_velocity.emplace_back(0, 0, 0);
-    surface.node_velocity_inflow.emplace_back(0, 0, 0);
     
     shared_ptr<vector<int> > empty_vector = make_shared<vector<int> >();
     surface.node_panel_neighbors.push_back(empty_vector);

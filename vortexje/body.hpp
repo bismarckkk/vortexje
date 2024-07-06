@@ -190,8 +190,7 @@ public:
     void set_rotational_velocity(const Eigen::Vector3d &rotational_velocity);
     
     Eigen::Vector3d panel_kinematic_velocity(const std::shared_ptr<Surface> &surface, int panel) const;
-    
-    Eigen::Vector3d node_kinematic_velocity(const std::shared_ptr<Surface> &surface, int node) const;
+    Eigen::Vector3d kinematic_velocity(const Eigen::Vector3d &point) const;
     
 protected:
     /**

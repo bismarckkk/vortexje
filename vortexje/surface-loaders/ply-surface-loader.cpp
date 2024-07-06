@@ -117,8 +117,6 @@ PLYSurfaceLoader::read_vertex_coordinate(int index, double value)
     if (index == 2) {
         // This is the last coordinate.  Process vertex.
         surface->nodes.push_back(current_point);
-        surface->node_velocity.emplace_back(0, 0, 0);
-        surface->node_velocity_inflow.emplace_back(0, 0, 0);
 
         shared_ptr<vector<int> > neighbor_list = make_shared<vector<int> >();
         surface->node_panel_neighbors.push_back(neighbor_list);

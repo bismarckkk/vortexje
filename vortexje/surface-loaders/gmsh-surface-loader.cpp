@@ -95,7 +95,9 @@ GmshSurfaceLoader::load(shared_ptr<Surface> surface, const string &filename)
             double x, y, z;
             tokens >> node_number >> x >> y >> z;
             
-            surface->nodes.push_back(Vector3d(x, y, z));            
+            surface->nodes.push_back(Vector3d(x, y, z));
+            surface->node_velocity.emplace_back(0, 0, 0);
+            surface->node_velocity_inflow.emplace_back(0, 0, 0);
             
             shared_ptr<vector<int> > neighbor_list = make_shared<vector<int> >();
             surface->node_panel_neighbors.push_back(neighbor_list);

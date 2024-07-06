@@ -280,13 +280,5 @@ Body::panel_kinematic_velocity(const std::shared_ptr<Surface> &surface, int pane
 Vector3d
 Body::node_kinematic_velocity(const std::shared_ptr<Surface> &surface, int node) const
 {
-    auto panels = *surface->node_panel_neighbors[node];
-    Vector3d vel = Vector3d::Zero();
-    double length = 0.0;
-    for (auto panel : panels) {
-        double len = (surface->panel_collocation_point(panel, false) - surface->nodes[node]).norm();
-        vel += panel_kinematic_velocity(surface, panel) / len;
-        length += len;
-    }
-    return vel / length;
+    return surface->node_velocity[node] + surface->node_velocity_inflow[node];
 }

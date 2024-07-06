@@ -812,11 +812,14 @@ Surface::vortex_ring_unit_velocity(const std::shared_ptr<Surface> &other, int ot
     return vortex_ring_unit_velocity(other->panel_collocation_point(other_panel, true), this_panel);
 }
 
-void Surface::update_nodes(vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &new_nodes) {
+void Surface::update_nodes(vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &new_nodes, double dt) {
     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> cp(panel_collocation_points[0]);
+    for (int i = 0; i < n_nodes(); i++) {
+        node_velocity[i] = (new_nodes[i] - old_nodes[i]) / dt;
+    }
     nodes.swap(new_nodes);
     compute_geometry();
     for (int i = 0; i < n_panels(); i++) {
-        panel_velocity[0] = panel_collocation_points[0][i] - cp[i];
+        panel_velocity[i] = (panel_collocation_points[0][i] - cp[i]) / dt;
     }
 }

@@ -949,7 +949,6 @@ Solver::solve(double dt, bool propagate)
         int i;
         
         const shared_ptr<BodyData> &bd = surface_to_body.find(d->surface)->second;
-        double v_ref_squared = compute_reference_velocity_squared(bd->body);
         
         double dphidt;
             
@@ -959,6 +958,7 @@ Solver::solve(double dt, bool propagate)
             for (i = 0; i < d->surface->n_panels(); i++) {
                 // Velocity potential:
                 surface_velocity_potentials(offset + i) = compute_surface_velocity_potential(d->surface, offset, i);
+                double v_ref_squared = (d->surface->panel_velocity[i] - freestream_velocity).squaredNorm();
                 
                 // Pressure coefficient:
                 dphidt = compute_surface_velocity_potential_time_derivative(offset, i, dt);
@@ -1041,9 +1041,12 @@ Solver::update_wakes(double dt)
                 idx++;
                 
                 // Convect wake nodes that coincide with the trailing edge.
+                int n_wakes = d->wake->n_nodes() / d->lifting_surface->n_spanwise_nodes();
                 for (int i = 0; i < d->lifting_surface->n_spanwise_nodes(); i++) {                                                  
-                    d->wake->nodes[d->wake->n_nodes() - d->lifting_surface->n_spanwise_nodes() + i]
-                        += compute_trailing_edge_vortex_displacement(bd->body, d->lifting_surface, i, dt);
+                    for (int j = 0; j < n_wakes; j++) {
+                        auto dl = compute_trailing_edge_vortex_displacement(bd->body, d->lifting_surface, i, dt);
+                        d->wake->nodes[j * d->lifting_surface->n_spanwise_nodes() + i] += dl;
+                    }
                 }                
                 
                 // Convect all other wake nodes according to the local wake velocity:

@@ -48,6 +48,8 @@ Wake::add_layer()
         
         int node = n_nodes();
         nodes.push_back(new_point);
+        node_velocity.emplace_back(0, 0, 0);
+        node_velocity_inflow.emplace_back(0, 0, 0);
         
         if (k > 0 && !first_layer) {
             vector<int> vertices;

@@ -147,30 +147,6 @@ Solver::add_body(std::shared_ptr<Body> body, std::shared_ptr<BoundaryLayer> boun
     string body_log_folder = log_folder + "/" + body->id;
     
     mkdir_helper(body_log_folder);
-    
-    for (si = bd->body->non_lifting_surfaces.begin(); si != bd->body->non_lifting_surfaces.end(); si++) {
-        shared_ptr<Body::SurfaceData> d = *si;
-        
-        stringstream ss;
-        ss << body_log_folder << "/" << d->surface->id;
-        
-        mkdir_helper(ss.str());
-    }
-          
-    for (lsi = bd->body->lifting_surfaces.begin(); lsi != bd->body->lifting_surfaces.end(); lsi++) {
-        shared_ptr<Body::LiftingSurfaceData> d = *lsi;
-        
-        stringstream ss;
-        ss << body_log_folder << "/" << d->lifting_surface->id;
-        
-        mkdir_helper(ss.str());
-        
-        ss.str(string());
-        ss.clear();
-        ss << body_log_folder << "/" << d->wake->id;
-        
-        mkdir_helper(ss.str());      
-    }
 }
 
 /**
@@ -1156,7 +1132,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             view_data.push_back(non_lifting_surface_velocity_vectors);
             
             stringstream ss;
-            ss << log_folder << "/" << bd->body->id << "/" << d->surface->id << "/step_" << step_number << writer.file_extension();
+            ss << log_folder << "/" << bd->body->id << "/" << d->surface->id << "_" << step_number << writer.file_extension();
 
             writer.write(d->surface, ss.str(), save_node_offset, save_panel_offset, view_names, view_data);
             
@@ -1203,7 +1179,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             view_data.push_back(lifting_surface_velocity_vectors);
             
             stringstream ss;
-            ss << log_folder << "/" << bd->body->id << "/" << d->lifting_surface->id << "/step_" << step_number << writer.file_extension();
+            ss << log_folder << "/" << bd->body->id << "/" << d->lifting_surface->id << "_" << step_number << writer.file_extension();
 
             writer.write(d->lifting_surface, ss.str(), save_node_offset, save_panel_offset, view_names, view_data);
             
@@ -1222,7 +1198,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             view_data.push_back(wake_doublet_coefficients);
             
             stringstream ssw;
-            ssw << log_folder << "/" << bd->body->id << "/" << d->wake->id << "/step_" << step_number << writer.file_extension();
+            ssw << log_folder << "/" << bd->body->id << "/" << d->wake->id << "_" << step_number << writer.file_extension();
             
             writer.write(d->wake, ssw.str(), 0, save_panel_offset, view_names, view_data);
             

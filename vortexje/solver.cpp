@@ -1046,9 +1046,14 @@ Solver::update_wakes(double dt)
                 d->wake->update_properties(dt);
 
                 // Scale doublet coefficients to account for the change in panel areas:
-                d->wake->compute_geometry();
-                for (int i = 0; i < d->wake->n_panels(); i++) {
-                    d->wake->doublet_coefficients[i] *= old_areas[i] / d->wake->panel_surface_areas[i];
+                if (Parameters::scale_wake_doublet) {
+                    d->wake->compute_geometry();
+                    for (int i = 0; i < d->wake->n_panels(); i++) {
+                        if (d->wake->panel_surface_areas[i] < 1e-10) {
+                            continue;
+                        }
+                        d->wake->doublet_coefficients[i] *= old_areas[i] / d->wake->panel_surface_areas[i];
+                    }
                 }
 
                 // Add new vertices:
@@ -1072,7 +1077,7 @@ Solver::update_wakes(double dt)
                 shared_ptr<Body::LiftingSurfaceData> d = *lsi;
 
                 for (int i = 0; i < d->lifting_surface->n_spanwise_nodes(); i++) {
-                    // Connect wake to trailing edge nodes:                             
+                    // Connect wake to trailing edge nodes:
                     d->wake->nodes[d->lifting_surface->n_spanwise_nodes() + i] = d->lifting_surface->nodes[d->lifting_surface->trailing_edge_node(i)];
 
                     // Point wake in direction of body kinematic velocity:

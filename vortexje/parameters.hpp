@@ -41,6 +41,8 @@ public:
        Whether or not to enable the convection of wake nodes.
     */
     static bool   convect_wake;
+
+    static bool   scale_wake_doublet;
     
     /**
        Whether to emit new wake panels into the direction of the trailing edge bisector, rather than following the

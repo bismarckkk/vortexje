@@ -744,6 +744,10 @@ Solver::solve(double dt, bool propagate)
         if (solver.info() != Success) {
             cerr << "Solver: Computing doublet distribution failed (" << solver.iterations();
             cerr << " iterations with estimated error=" << solver.error() << ")." << endl;
+
+            if (std::isnan(solver.error())) {
+                throw runtime_error("Solver: NaN error in doublet distribution.");
+            }
            
             return false;
         }

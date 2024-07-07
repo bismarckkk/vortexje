@@ -123,6 +123,12 @@ public:
     
     Eigen::Vector3d source_unit_velocity(const std::shared_ptr<Surface> &other, int other_panel, int this_panel) const;
     Eigen::Vector3d vortex_ring_unit_velocity(const std::shared_ptr<Surface> &other, int other_panel, int this_panel) const;
+
+
+    /**
+       Panel number to surface area map.
+    */
+    std::vector<double> panel_surface_areas;
     
 protected:
     /**
@@ -139,11 +145,6 @@ protected:
        Panel number to panel coordinate transformation map.
     */
     std::vector<Eigen::Transform<double, 3, Eigen::Affine>, Eigen::aligned_allocator<Eigen::Transform<double, 3, Eigen::Affine> > > panel_coordinate_transformations;
-    
-    /**
-       Panel number to surface area map.
-    */
-    std::vector<double> panel_surface_areas;
 };
 
 };

@@ -23,7 +23,7 @@ bool   Parameters::unsteady_bernoulli                 = true;
 
 bool   Parameters::convect_wake                       = true;
 
-bool   Parameters::wake_emission_follow_bisector      = true;
+bool   Parameters::wake_emission_follow_bisector      = false;
 
 double Parameters::wake_emission_distance_factor      = 1.0;
 
@@ -35,7 +35,7 @@ double Parameters::zero_threshold                     = numeric_limits<double>::
 
 double Parameters::collocation_point_delta            = 1e-12;
 
-double Parameters::interpolation_layer_thickness      = 1e-8;
+double Parameters::interpolation_layer_thickness      = 1e-6;
 
 int    Parameters::max_boundary_layer_iterations      = 100;
 

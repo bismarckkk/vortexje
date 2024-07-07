@@ -195,7 +195,7 @@ Eigen::Vector3d
 Solver::velocity(const Eigen::Vector3d &x) const
 {
     std::set<int> ignore_set;
-    
+
     return compute_velocity_interpolated(x, ignore_set);
 }
 
@@ -977,69 +977,77 @@ Solver::update_wakes(double dt)
 {
     // Do we convect wake panels?
     if (Parameters::convect_wake) {
+        typedef std::shared_ptr<Body> BodyPtr;
+
         cout << "Solver: Convecting wakes." << endl;
-        
-        // Compute velocity values at wake nodes, with the wakes in their original state:
-        vector<vector<Vector3d, Eigen::aligned_allocator<Vector3d> >, Eigen::aligned_allocator<vector<Vector3d> > > wake_velocities;
-        
+        vector<Vector3d, Eigen::aligned_allocator<Vector3d>> nodes;
+        vector<BodyPtr> bodyPtrs;
         vector<shared_ptr<BodyData> >::const_iterator bdi;
         for (bdi = bodies.begin(); bdi != bodies.end(); bdi++) {
             const shared_ptr<BodyData> &bd = *bdi;
-                 
             vector<shared_ptr<Body::LiftingSurfaceData> >::const_iterator lsi;
             for (lsi = bd->body->lifting_surfaces.begin(); lsi != bd->body->lifting_surfaces.end(); lsi++) {
                 const shared_ptr<Body::LiftingSurfaceData> &d = *lsi;
-                
-                vector<Vector3d, Eigen::aligned_allocator<Vector3d> > local_wake_velocities;
-                local_wake_velocities.resize(d->wake->n_nodes());
-                
-                int i;
-                
-                #pragma omp parallel
-                {
-                    #pragma omp for schedule(dynamic, 1)
-                    for (i = 0; i < d->wake->n_nodes(); i++)
-                        local_wake_velocities[i] = velocity(d->wake->nodes[i]);
+                for (int i = 0; i < d->wake->n_nodes(); i++) {
+                    nodes.push_back(d->wake->nodes[i]);
+                    bodyPtrs.push_back(bd->body);
                 }
-                
-                wake_velocities.push_back(local_wake_velocities);
             }
         }
-        
-        // Add new wake panels at trailing edges, and convect all vertices:
-        int idx = 0;
-        
+        vector<Vector3d, Eigen::aligned_allocator<Vector3d>> k1(nodes.size()), k2(nodes.size()), k3(nodes.size()), k4(nodes.size());
+
+        int i;
+        #pragma omp parallel
+        {
+            #pragma omp for schedule(dynamic, 1)
+            for (i = 0; i < nodes.size(); i++) {
+//                k1[i] = velocity(nodes[i]);
+                k1[i] = -bodyPtrs[i]->kinematic_velocity(nodes[i]) - freestream_velocity;
+            }
+        }
+
+        #pragma omp parallel
+        {
+            #pragma omp for schedule(dynamic, 1)
+            for (i = 0; i < nodes.size(); i++) {
+                auto new_node = nodes[i] + 0.5 * dt * k1[i];
+                k2[i] = velocity(new_node);
+                k2[i] -= bodyPtrs[i]->kinematic_velocity(new_node) - freestream_velocity;
+            }
+        }
+
+        #pragma omp parallel
+        {
+            #pragma omp for schedule(dynamic, 1)
+            for (i = 0; i < nodes.size(); i++) {
+                auto new_node = nodes[i] + 0.5 * dt * k2[i];
+                k3[i] = velocity(new_node);
+                k3[i] -= bodyPtrs[i]->kinematic_velocity(new_node) - freestream_velocity;
+            }
+        }
+
+        #pragma omp parallel
+        {
+            #pragma omp for schedule(dynamic, 1)
+            for (i = 0; i < nodes.size(); i++) {
+                auto new_node = nodes[i] + dt * k3[i];
+                k4[i] = velocity(new_node);
+                k4[i] -= bodyPtrs[i]->kinematic_velocity(new_node) - freestream_velocity;
+            }
+        }
+
+        i = 0;
         for (bdi = bodies.begin(); bdi != bodies.end(); bdi++) {
-            shared_ptr<BodyData> bd = *bdi;
-            
-            vector<shared_ptr<Body::LiftingSurfaceData> >::iterator lsi;
+            const shared_ptr<BodyData> &bd = *bdi;
+            vector<shared_ptr<Body::LiftingSurfaceData> >::const_iterator lsi;
             for (lsi = bd->body->lifting_surfaces.begin(); lsi != bd->body->lifting_surfaces.end(); lsi++) {
-                shared_ptr<Body::LiftingSurfaceData> d = *lsi;
-                
-                // Retrieve local wake velocities:
-                vector<Vector3d, Eigen::aligned_allocator<Vector3d> > &local_wake_velocities = wake_velocities[idx];
-                idx++;
-                
-                // Convect wake nodes that coincide with the trailing edge.
-                int n_wakes = d->wake->n_nodes() / d->lifting_surface->n_spanwise_nodes();
-                for (int i = 0; i < d->lifting_surface->n_spanwise_nodes(); i++) {                                                  
-                    for (int j = 0; j < n_wakes; j++) {
-                        auto& _node = d->wake->nodes[j * d->lifting_surface->n_spanwise_nodes() + i];
-                        auto dl = compute_trailing_edge_vortex_displacement(bd->body, d->lifting_surface, i, _node, dt);
-                        _node += dl;
-                    }
-                }                
-                
-                // Convect all other wake nodes according to the local wake velocity:
-                int i;
-                
-                #pragma omp parallel
-                {
-                    #pragma omp for schedule(dynamic, 1)
-                    for (i = 0; i < d->wake->n_nodes() - d->lifting_surface->n_spanwise_nodes(); i++)
-                        d->wake->nodes[i] += local_wake_velocities[i] * dt;
+                const shared_ptr<Body::LiftingSurfaceData> &d = *lsi;
+
+                for (int j = 0; j < d->wake->n_nodes(); j++) {
+                    d->wake->nodes[j] += dt / 6.0 * (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]);
+                    i++;
                 }
-                    
+
                 // Run internal wake update:
                 d->wake->update_properties(dt);
 
@@ -1048,7 +1056,6 @@ Solver::update_wakes(double dt)
                 d->wake->add_layer();
             }
         }
-        
     } else {
         cout << "Solver: Re-positioning wakes." << endl;
         

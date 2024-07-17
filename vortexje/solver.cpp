@@ -625,6 +625,8 @@ Solver::solve(double dt, bool propagate)
 
     int boundary_layer_iteration = 0;
 
+    refresh_inflow_velocity();
+
     while (true) {
         // Copy state:
         previous_source_coefficients  = source_coefficients;
@@ -1772,4 +1774,45 @@ Solver::compute_index(const std::shared_ptr<Surface> &surface, int panel) const
     }
 
     return -1;
+}
+
+void Solver::refresh_inflow_velocity() {
+    if (!get_inflow_velocity) {
+        return;
+    }
+    std::vector<Eigen::Vector3d> pos;
+    for (auto& body : bodies) {
+        for (auto& surface : body->body->non_lifting_surfaces) {
+            for (int i = 0; i < surface->surface->n_panels(); i++) {
+                pos.push_back(surface->surface->panel_collocation_point(i, false));
+            }
+        }
+        for (auto& surface : body->body->lifting_surfaces) {
+            for (int i = 0; i < surface->lifting_surface->n_panels(); i++) {
+                pos.push_back(surface->lifting_surface->panel_collocation_point(i, false));
+            }
+        }
+    }
+    auto inflow_velocity = get_inflow_velocity(pos);
+    int offset = 0;
+    for (auto& body : bodies) {
+        for (auto& surface : body->body->non_lifting_surfaces) {
+            for (int i = 0; i < surface->surface->n_panels(); i++) {
+                surface->surface->panel_velocity_inflow[i] = inflow_velocity[offset];
+                offset++;
+            }
+        }
+        for (auto& surface : body->body->lifting_surfaces) {
+            for (int i = 0; i < surface->lifting_surface->n_panels(); i++) {
+                surface->lifting_surface->panel_velocity_inflow[i] = inflow_velocity[offset];
+                offset++;
+            }
+        }
+    }
+}
+
+void Solver::set_inflow_velocity_getter(
+        std::function<std::vector<Eigen::Vector3d>(const std::vector<Eigen::Vector3d> &)> getter
+) {
+    get_inflow_velocity = getter;
 }

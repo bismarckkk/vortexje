@@ -205,3 +205,79 @@ Wake::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
     return one_over_4pi * velocity;
 }
 
+std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> Wake::get_vortex_particles() {
+    if (n_panels() / lifting_surface->n_spanwise_panels() < 1) {
+        return std::make_pair(std::vector<Eigen::Vector3d>(), std::vector<Eigen::Vector3d>());
+    }
+    if (last_doublet_coefficients.empty()) {
+        last_doublet_coefficients = std::vector<double>(lifting_surface->n_spanwise_panels(), 0);
+    }
+
+    std::vector<double> dudx(lifting_surface->n_spanwise_panels(), 0);
+    std::vector<double> dudy(lifting_surface->n_spanwise_panels(), 0);
+    std::vector<Eigen::Vector3d> esx(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
+    std::vector<Eigen::Vector3d> esy(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
+    for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
+        Eigen::Vector3d p1 = (nodes[i] + nodes[i + 1]) / 2;
+        Eigen::Vector3d p2 = (nodes[i + lifting_surface->n_spanwise_nodes()] + nodes[i + lifting_surface->n_spanwise_nodes() + 1]) / 2;
+        esx[i] = p2 - p1;
+        dudx[i] = (doublet_coefficients[i] - last_doublet_coefficients[i]) / esx[i].norm() / 2;
+        esx[i] /= esx[i].norm();
+        last_doublet_coefficients[i] = doublet_coefficients[i];
+    }
+    for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
+        Eigen::Vector3d p1 = (nodes[i] + nodes[i + lifting_surface->n_spanwise_nodes()]) / 2;
+        Eigen::Vector3d p2 = (nodes[i + 1] + nodes[i + 1 + lifting_surface->n_spanwise_nodes()]) / 2;
+        esy[i] = p2 - p1;
+        if (i == 0) {
+            dudy[i] = (doublet_coefficients[i] + doublet_coefficients[i + 1]) / esy[i].norm() / 2;
+        } else if (i == lifting_surface->n_spanwise_panels() - 1) {
+            dudy[i] = -(doublet_coefficients[i - 1] + doublet_coefficients[i]) / esy[i].norm() / 2;
+        } else {
+            dudy[i] = (doublet_coefficients[i + 1] - doublet_coefficients[i - 1]) / esy[i].norm() / 2;
+        }
+        esy[i] /= esy[i].norm();
+    }
+
+    std::vector<Eigen::Vector3d> strength(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
+    std::vector<Eigen::Vector3d> position(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
+    for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
+        strength[i] = panel_surface_areas[i] * (dudx[i] * esy[i] + dudy[i] * esx[i]);
+        position[i] = panel_collocation_points[0][i];
+    }
+
+    remove_layer();
+
+    return std::make_pair(strength, position);
+}
+
+void Wake::remove_layer() {
+    if (n_panels() / lifting_surface->n_spanwise_panels() < 1) {
+        return;
+    }
+
+    nodes.erase(nodes.begin(), nodes.begin() + lifting_surface->n_spanwise_nodes());
+    panel_nodes.erase(panel_nodes.begin(), panel_nodes.begin() + lifting_surface->n_spanwise_panels());
+    panel_velocity.erase(panel_velocity.begin(), panel_velocity.begin() + lifting_surface->n_spanwise_panels());
+    panel_velocity_inflow.erase(panel_velocity_inflow.begin(), panel_velocity_inflow.begin() + lifting_surface->n_spanwise_panels());
+    panel_neighbors.erase(panel_neighbors.begin(), panel_neighbors.begin() + lifting_surface->n_spanwise_panels());
+    node_panel_neighbors.erase(node_panel_neighbors.begin(), node_panel_neighbors.begin() + lifting_surface->n_spanwise_nodes());
+    doublet_coefficients.erase(doublet_coefficients.begin(), doublet_coefficients.begin() + lifting_surface->n_spanwise_panels());
+
+    for (int i = 0; i < n_nodes(); i++) {
+        for (auto& neighbor : *node_panel_neighbors[i]) {
+            neighbor -= lifting_surface->n_spanwise_panels();
+        }
+    }
+    for (int i = 0; i < n_panels(); i++) {
+        for (auto& node : panel_nodes[i]) {
+            node -= lifting_surface->n_spanwise_nodes();
+        }
+        for (auto& mother_edge : panel_neighbors[i]) {
+            for (auto& neighbor : mother_edge) {
+                neighbor.first -= lifting_surface->n_spanwise_panels();
+            }
+        }
+    }
+}
+

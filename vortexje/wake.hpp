@@ -36,6 +36,7 @@ public:
     std::shared_ptr<LiftingSurface> lifting_surface;
     
     virtual void add_layer();
+    void remove_layer();
     
     void translate_trailing_edge(const Eigen::Vector3d &translation);
     void transform_trailing_edge(const Eigen::Transform<double, 3, Eigen::Affine> &transformation);
@@ -48,6 +49,9 @@ public:
        Strengths of the doublet, or vortex ring, panels.
     */
     std::vector<double> doublet_coefficients;
+
+    std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> get_vortex_particles();
+    std::vector<double> last_doublet_coefficients;
 };
 
 };

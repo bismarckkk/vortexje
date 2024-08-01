@@ -266,7 +266,7 @@ Body::set_rotational_velocity(const Vector3d &rotational_velocity)
 Vector3d
 Body::panel_kinematic_velocity(const std::shared_ptr<Surface> &surface, int panel) const
 {
-    return surface->panel_velocity[panel] + surface->panel_velocity_inflow[panel];
+    return surface->panel_velocity[panel] - surface->panel_velocity_inflow[panel];
 }
 
 Eigen::Vector3d Body::kinematic_velocity(const Vector3d &point) const {

@@ -206,7 +206,7 @@ Wake::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
 }
 
 std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> Wake::get_vortex_particles() {
-    if (n_panels() / lifting_surface->n_spanwise_panels() < 1) {
+    if (n_panels() / lifting_surface->n_spanwise_panels() < 2) {
         return std::make_pair(std::vector<Eigen::Vector3d>(), std::vector<Eigen::Vector3d>());
     }
     if (last_doublet_coefficients.empty()) {
@@ -220,29 +220,33 @@ std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> Wake::get_
     for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
         Eigen::Vector3d p1 = (nodes[i] + nodes[i + 1]) / 2;
         Eigen::Vector3d p2 = (nodes[i + lifting_surface->n_spanwise_nodes()] + nodes[i + lifting_surface->n_spanwise_nodes() + 1]) / 2;
-        esx[i] = p2 - p1;
-        dudx[i] = (doublet_coefficients[i] - last_doublet_coefficients[i]) / esx[i].norm() / 2;
+        esx[i] = p1 - p2;
+        dudx[i] = (doublet_coefficients[i + lifting_surface->n_spanwise_panels()] - last_doublet_coefficients[i]) / esx[i].norm() / 2;
         esx[i] /= esx[i].norm();
         last_doublet_coefficients[i] = doublet_coefficients[i];
     }
     for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
         Eigen::Vector3d p1 = (nodes[i] + nodes[i + lifting_surface->n_spanwise_nodes()]) / 2;
         Eigen::Vector3d p2 = (nodes[i + 1] + nodes[i + 1 + lifting_surface->n_spanwise_nodes()]) / 2;
-        esy[i] = p2 - p1;
+        Eigen::Vector3d es2 = p1 - p2;
+        double duds2;
         if (i == 0) {
-            dudy[i] = (doublet_coefficients[i] + doublet_coefficients[i + 1]) / esy[i].norm() / 2;
+            duds2 = doublet_coefficients[i + 1] / es2.norm() / 2;
         } else if (i == lifting_surface->n_spanwise_panels() - 1) {
-            dudy[i] = -(doublet_coefficients[i - 1] + doublet_coefficients[i]) / esy[i].norm() / 2;
+            duds2 = -doublet_coefficients[i - 1] / es2.norm() / 2;
         } else {
-            dudy[i] = (doublet_coefficients[i + 1] - doublet_coefficients[i - 1]) / esy[i].norm() / 2;
+            duds2 = (doublet_coefficients[i + 1] - doublet_coefficients[i - 1]) / es2.norm() / 2;
         }
-        esy[i] /= esy[i].norm();
+        es2 /= es2.norm();
+        esy[i].x() = -esx[i].y();
+        esy[i].y() = esx[i].x();
+        dudy[i] = (duds2 - esx[i].dot(es2) * dudx[i]) / esy[i].dot(es2);
     }
 
     std::vector<Eigen::Vector3d> strength(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
     std::vector<Eigen::Vector3d> position(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
     for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
-        strength[i] = panel_surface_areas[i] * (dudx[i] * esy[i] + dudy[i] * esx[i]);
+        strength[i] = panel_surface_areas[i] * (dudx[i] * esy[i] - dudy[i] * esx[i]);
         position[i] = panel_collocation_points[0][i];
     }
 
@@ -252,7 +256,7 @@ std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> Wake::get_
 }
 
 void Wake::remove_layer() {
-    if (n_panels() / lifting_surface->n_spanwise_panels() < 1) {
+    if (n_panels() / lifting_surface->n_spanwise_panels() < 2) {
         return;
     }
 

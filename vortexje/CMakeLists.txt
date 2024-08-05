@@ -1,6 +1,9 @@
 include_directories(../)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+get_target_property(EigenPath eigen INTERFACE_INCLUDE_DIRECTORIES)
+include_directories(${EigenPath})
+
 add_subdirectory(boundary-layers)
 add_subdirectory(empirical-wakes)
 add_subdirectory(surface-loaders)
@@ -33,7 +36,8 @@ set(HDRS
 	surface-writer.hpp 
 	field-writer.hpp)
 
-add_library(vortexje SHARED ${SRCS}
+add_library(
+		vortexje SHARED ${SRCS}
     $<TARGET_OBJECTS:boundary-layers>
     $<TARGET_OBJECTS:empirical-wakes>
     $<TARGET_OBJECTS:surface-loaders>
@@ -41,13 +45,14 @@ add_library(vortexje SHARED ${SRCS}
     $<TARGET_OBJECTS:field-writers>
     $<TARGET_OBJECTS:shape-generators>
     $<TARGET_OBJECTS:airfoils>
-    $<TARGET_OBJECTS:rply>)
-
+    $<TARGET_OBJECTS:rply>
+)
 
 target_link_libraries(
 	vortexje
 	OpenMP::OpenMP_CXX
+	eigen
 )
 
-install (TARGETS vortexje DESTINATION lib)
-install (FILES ${HDRS} DESTINATION include/vortexje)
+target_include_directories(vortexje PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_compile_options(vortexje PRIVATE -O3 -march=native)

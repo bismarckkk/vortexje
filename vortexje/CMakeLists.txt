@@ -55,4 +55,10 @@ target_link_libraries(
 )
 
 target_include_directories(vortexje PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
-target_compile_options(vortexje PRIVATE -O3 -march=native)
+
+if(MSVC)
+	string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+	target_compile_options(vortexje PRIVATE /Ox /bigobj)
+else ()
+	target_compile_options(vortexje PRIVATE -O3 -march=native)
+endif ()

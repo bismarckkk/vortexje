@@ -982,7 +982,7 @@ Solver::update_wakes(double dt)
         cout << "Solver: Convecting wakes." << endl;
 
         // Compute velocity values at wake nodes, with the wakes in their original state:
-        vector<vector<Vector3d, Eigen::aligned_allocator<Vector3d> >, Eigen::aligned_allocator<vector<Vector3d> > > wake_velocities;
+        vector<vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > wake_velocities;
 
         vector<shared_ptr<BodyData> >::const_iterator bdi;
         for (bdi = bodies.begin(); bdi != bodies.end(); bdi++) {

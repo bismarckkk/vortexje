@@ -1780,7 +1780,7 @@ void Solver::refresh_inflow_velocity() {
     if (!get_inflow_velocity) {
         return;
     }
-    std::vector<Eigen::Vector3d> pos;
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> pos;
     for (auto& body : bodies) {
         for (auto& surface : body->body->non_lifting_surfaces) {
             for (int i = 0; i < surface->surface->n_panels(); i++) {
@@ -1812,7 +1812,7 @@ void Solver::refresh_inflow_velocity() {
 }
 
 void Solver::set_inflow_velocity_getter(
-        std::function<std::vector<Eigen::Vector3d>(const std::vector<Eigen::Vector3d> &)> getter
+        std::function<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &)> getter
 ) {
     get_inflow_velocity = getter;
 }

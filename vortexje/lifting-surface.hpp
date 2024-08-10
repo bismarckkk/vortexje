@@ -57,6 +57,9 @@ public:
        Note:  This matrix must at least cover the lower side panels adjacent to the trailing edge.
     */
     Eigen::MatrixXi lower_panels;
+
+    Eigen::Vector3d lift_dir=Eigen::Vector3d::Zero(), drag_dir=Eigen::Vector3d::Zero();
+    std::vector<double> dx;
     
     int n_chordwise_nodes() const;
     int n_chordwise_panels() const;

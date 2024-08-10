@@ -18,6 +18,8 @@
 #include <direct.h>
 #endif
 
+#include <filesystem>
+
 #include <Eigen/Geometry>
 #include <Eigen/SVD>
 #include <Eigen/IterativeLinearSolvers>
@@ -40,13 +42,7 @@ using namespace Vortexje;
 static void
 mkdir_helper(const string folder)
 {
-#ifdef _WIN32
-    if (mkdir(folder.c_str()) < 0)
-#else
-    if (mkdir(folder.c_str(), S_IRWXU) < 0)
-#endif
-        if (errno != EEXIST)
-            cerr << "Could not create log folder " << folder << ": " << strerror(errno) << endl;
+    std::filesystem::create_directory(folder);
 }
 
 /**
@@ -1179,6 +1175,44 @@ Solver::log(int step_number, SurfaceWriter &writer) const
                 lifting_surface_pressure_coefficients(i, 0) = pressure_coefficients(offset + i);
                 lifting_surface_velocity_vectors.row(i)     = surface_velocities.row(offset + i);
             }
+
+            vector<double> lift, drag;
+            double lift_t = 0, drag_t = 0;
+            auto chord_p = int(d->lifting_surface->n_panels() / d->lifting_surface->n_spanwise_panels());
+            for (int i = 0; i < d->lifting_surface->n_spanwise_panels(); i++) {
+                double dl = 0, dd = 0;
+                for (int j = 0; j < chord_p; j++) {
+                    int idx = i * chord_p + j;
+                    Eigen::Vector3d force = 0.5 * fluid_density * surface_velocities.row(offset + idx).squaredNorm()
+                                            * d->lifting_surface->panel_surface_areas[idx] * d->lifting_surface->panel_normal(idx);
+                    Eigen::Vector3d lift_dir = d->lifting_surface->lift_dir;
+
+                    dl -= force.dot(d->lifting_surface->lift_dir);
+                    dd += force.dot(d->lifting_surface->drag_dir);
+                }
+                lift.insert(lift.begin(), dl);
+                drag.insert(drag.begin(), dd);
+                lift_t += dl;
+                drag_t += dd;
+            }
+
+            stringstream lift_ss, drag_ss;
+            lift_ss << log_folder << "/" << bd->body->id << "/" << d->surface->id << "_lift.csv";
+            drag_ss << log_folder << "/" << bd->body->id << "/" << d->surface->id << "_drag.csv";
+            std::ofstream lift_f(lift_ss.str(), std::ios::app);
+            std::ofstream drag_f(drag_ss.str(), std::ios::app);
+            lift_f << step_number << "," << lift_t;
+            drag_f << step_number << "," << drag_t;
+            for (int i = 0; i < d->lifting_surface->n_spanwise_panels(); i++) {
+                lift_f << "," << lift[i] / d->lifting_surface->dx[i];
+                drag_f << "," << drag[i] / d->lifting_surface->dx[i];
+            }
+            lift_f << std::endl;
+            drag_f << std::endl;
+            lift_f.flush();
+            drag_f.flush();
+            lift_f.close();
+            drag_f.close();
 
             offset += d->lifting_surface->n_panels();
 

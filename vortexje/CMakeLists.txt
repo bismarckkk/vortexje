@@ -37,7 +37,7 @@ set(HDRS
         field-writer.hpp)
 
 add_library(
-        vortexje SHARED ${SRCS}
+        vortexje ${SRCS}
 )
 
 target_link_libraries(
@@ -52,6 +52,7 @@ target_link_libraries(
         rply
         OpenMP::OpenMP_CXX
         eigen
+        ConfigProvider
 )
 
 target_include_directories(vortexje PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)

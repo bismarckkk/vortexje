@@ -28,6 +28,8 @@
 #include <vortexje/parameters.hpp>
 #include <vortexje/boundary-layers/dummy-boundary-layer.hpp>
 
+#include "../../utils/ConfigProvider.hpp"
+
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
@@ -629,7 +631,7 @@ Solver::solve(double dt, bool propagate)
         previous_doublet_coefficients = doublet_coefficients;
 
         // Compute new source distribution:
-        cout << "Solver: Computing source distribution with wake influence." << endl;
+        LOG.debug("Computing source distribution with wake influence.");
 
         offset = 0;
 
@@ -651,7 +653,7 @@ Solver::solve(double dt, bool propagate)
         }
 
         // Populate the matrices of influence coefficients:
-        cout << "Solver: Computing matrices of influence coefficients." << endl;
+        LOG.debug("Computing matrices of influence coefficients.");
 
         MatrixXd A(n_non_wake_panels, n_non_wake_panels);
         MatrixXd source_influence_coefficients(n_non_wake_panels, n_non_wake_panels);
@@ -729,7 +731,7 @@ Solver::solve(double dt, bool propagate)
         }
 
         // Compute new doublet distribution:
-        cout << "Solver: Computing doublet distribution." << endl;
+        LOG.debug("Computing doublet distribution.");
 
         VectorXd b = source_influence_coefficients * source_coefficients;
 
@@ -750,21 +752,21 @@ Solver::solve(double dt, bool propagate)
             return false;
         }
 
-        cout << "Solver: Done computing doublet distribution in " << solver.iterations() << " iterations with estimated error " << solver.error() << "." << endl;
+        LOG.info("Done computing doublet distribution in {} iterations with estimated error {}.", solver.iterations(), solver.error());
 
         // Check for convergence from second iteration onwards.
         bool converged = false;
         if (boundary_layer_iteration > 0) {
             double delta = (source_coefficients - previous_source_coefficients).norm();
 
-            cout << "Solver: Boundary layer convergence delta = " << delta << endl;
+            LOG.info("Boundary layer convergence delta = {}.", delta);
 
             if (delta < Parameters::boundary_layer_iteration_tolerance)
                 converged = true;
         }
 
         // Set new wake panel doublet coefficients:
-        cout << "Solver: Updating wake doublet distribution." << endl;
+        LOG.debug("Updating wake doublet distribution.");
 
         offset = 0;
 
@@ -798,8 +800,7 @@ Solver::solve(double dt, bool propagate)
         }
 
         // Compute surface velocity distribution:
-        cout << "Solver: Computing surface velocity distribution." << endl;
-
+        LOG.debug("Computing surface velocity distribution.");
         offset = 0;
 
         for (bdi = bodies.begin(); bdi != bodies.end(); bdi++) {
@@ -838,13 +839,13 @@ Solver::solve(double dt, bool propagate)
 
         // If we converged, then this is the time to break out of the loop.
         if (converged) {
-            cout << "Solver: Boundary layer iteration converged in " << boundary_layer_iteration << " steps." << endl;
+            LOG.info("Boundary layer iteration converged in {} steps.", boundary_layer_iteration);
 
             break;
         }
 
         if (boundary_layer_iteration > Parameters::max_boundary_layer_iterations) {
-            cout << "Solver: Maximum number of boundary layer iterations ranged.  Aborting iteration." << endl;
+            LOG.warn("Maximum number of boundary layer iterations ranged.  Aborting iteration.");
 
             break;
         }
@@ -894,7 +895,7 @@ Solver::solve(double dt, bool propagate)
 
     if (Parameters::convect_wake) {
         // Recompute source distribution without wake influence:
-        cout << "Solver: Recomputing source distribution without wake influence." << endl;
+        LOG.debug("Recomputing source distribution without wake influence.");
 
         offset = 0;
 
@@ -917,7 +918,7 @@ Solver::solve(double dt, bool propagate)
     }
 
     // Compute pressure distribution:
-    cout << "Solver: Computing pressure distribution." << endl;
+    LOG.debug("Computing pressure distribution.");
 
     offset = 0;
 
@@ -975,7 +976,7 @@ Solver::update_wakes(double dt)
 {
     // Do we convect wake panels?
     if (Parameters::convect_wake) {
-        cout << "Solver: Convecting wakes." << endl;
+        LOG.debug("Convecting wakes.");
 
         // Compute velocity values at wake nodes, with the wakes in their original state:
         vector<vector<Vector3d, Eigen::aligned_allocator<Vector3d> > > wake_velocities;
@@ -1061,7 +1062,7 @@ Solver::update_wakes(double dt)
         }
 
     } else {
-        cout << "Solver: Re-positioning wakes." << endl;
+        LOG.debug("Re-positioning wakes.");
 
         // No wake convection.  Re-position wake:
         vector<shared_ptr<BodyData> >::iterator bdi;

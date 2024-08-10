@@ -18,6 +18,8 @@
 #include <vortexje/surface.hpp>
 #include <vortexje/parameters.hpp>
 
+#include "../../utils/ConfigProvider.hpp"
+
 using namespace std;
 using namespace Eigen;
 using namespace Vortexje;
@@ -302,7 +304,7 @@ Surface::compute_geometry(int panel)
 void
 Surface::compute_geometry()
 {
-    cout << "Surface " << id << ": Computing geometry." << endl;
+    LOG.debug("Surface %s: Computing geometry.", id.c_str());
     
     for (int i = 0; i < n_panels(); i++)
         compute_geometry(i);

@@ -12,53 +12,53 @@ add_subdirectory(field-writers)
 add_subdirectory(shape-generators)
 
 set(SRCS
-    surface.cpp 
-	solver.cpp 
-	parameters.cpp 
-	lifting-surface.cpp 
-	wake.cpp 
-	body.cpp 
-	surface-builder.cpp 
-	lifting-surface-builder.cpp 
-	surface-writer.cpp)
-	
+        surface.cpp
+        solver.cpp
+        parameters.cpp
+        lifting-surface.cpp
+        wake.cpp
+        body.cpp
+        surface-builder.cpp
+        lifting-surface-builder.cpp
+        surface-writer.cpp)
+
 set(HDRS
-    surface.hpp 
-	solver.hpp 
-	parameters.hpp 
-	lifting-surface.hpp 
-	wake.hpp
-	boundary-layer.hpp
-	body.hpp 
-	surface-builder.hpp 
-	lifting-surface-builder.hpp 
-	surface-loader.hpp
-	surface-writer.hpp 
-	field-writer.hpp)
+        surface.hpp
+        solver.hpp
+        parameters.hpp
+        lifting-surface.hpp
+        wake.hpp
+        boundary-layer.hpp
+        body.hpp
+        surface-builder.hpp
+        lifting-surface-builder.hpp
+        surface-loader.hpp
+        surface-writer.hpp
+        field-writer.hpp)
 
 add_library(
-		vortexje SHARED ${SRCS}
-    $<TARGET_OBJECTS:boundary-layers>
-    $<TARGET_OBJECTS:empirical-wakes>
-    $<TARGET_OBJECTS:surface-loaders>
-    $<TARGET_OBJECTS:surface-writers>
-    $<TARGET_OBJECTS:field-writers>
-    $<TARGET_OBJECTS:shape-generators>
-    $<TARGET_OBJECTS:airfoils>
-    $<TARGET_OBJECTS:rply>
+        vortexje SHARED ${SRCS}
 )
 
 target_link_libraries(
-	vortexje
-	OpenMP::OpenMP_CXX
-	eigen
+        vortexje
+        boundary-layers
+        empirical-wakes
+        surface-loaders
+        surface-writers
+        field-writers
+        shape-generators
+        airfoils
+        rply
+        OpenMP::OpenMP_CXX
+        eigen
 )
 
 target_include_directories(vortexje PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
-if(MSVC)
-	string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
-	target_compile_options(vortexje PRIVATE /Ox /bigobj)
+if (MSVC)
+    string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+    target_compile_options(vortexje PRIVATE /Ox /bigobj)
 else ()
-	target_compile_options(vortexje PRIVATE -O3 -march=native)
+    target_compile_options(vortexje PRIVATE -O3 -march=native)
 endif ()

@@ -42,13 +42,17 @@ bool Vortexje::XdmfSurfaceWriter::write(const std::shared_ptr<Surface> &surface,
         throw std::runtime_error("Invalid filename format: " + _filename);
     }
 
+    HighFive::DataSetCreateProps props;
+//    props.add(HighFive::Deflate(5));
+//    props.add(HighFive::Shuffle());
+
     std::ofstream xdmf(filename);
     HighFive::File h5file(h5filename, HighFive::File::Truncate);
     std::vector<Eigen::Vector3d> nodes;
     for (int i = 0; i < surface->n_nodes(); i++) {
         nodes.push_back(surface->nodes[i]);
     }
-    HighFive::DataSet dataset = h5file.createDataSet("X", nodes);
+    HighFive::DataSet dataset = h5file.createDataSet("X", nodes, props);
     dataset.write(nodes);
 
     std::vector<int> panel_nodes;
@@ -65,7 +69,7 @@ bool Vortexje::XdmfSurfaceWriter::write(const std::shared_ptr<Surface> &surface,
         }
     }
 
-    HighFive::DataSet panel_dataset = h5file.createDataSet("P", panel_nodes);
+    HighFive::DataSet panel_dataset = h5file.createDataSet("P", panel_nodes, props);
     panel_dataset.write(panel_nodes);
 
     xdmf << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
@@ -92,7 +96,7 @@ bool Vortexje::XdmfSurfaceWriter::write(const std::shared_ptr<Surface> &surface,
                     data.push_back(view_data[k](i, j));
                 }
             }
-            HighFive::DataSet view_dataset = h5file.createDataSet(view_names[k], data);
+            HighFive::DataSet view_dataset = h5file.createDataSet(view_names[k], data, props);
             view_dataset.write(data);
         } else {
             xdmf << "            <Attribute Name=\"" << view_names[k] << "\" AttributeType=\"Vector\" Center=\"Cell\">\n"
@@ -103,7 +107,7 @@ bool Vortexje::XdmfSurfaceWriter::write(const std::shared_ptr<Surface> &surface,
             for (int i = 0; i < surface->n_panels(); i++) {
                 data.emplace_back(view_data[k].row(i));
             }
-            HighFive::DataSet view_dataset = h5file.createDataSet(view_names[k], data);
+            HighFive::DataSet view_dataset = h5file.createDataSet(view_names[k], data, props);
             view_dataset.write(data);
         }
     }

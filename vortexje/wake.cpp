@@ -237,9 +237,9 @@ std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> Wake::get_
         } else {
             duds2 = (doublet_coefficients[i + 1] - doublet_coefficients[i - 1]) / es2.norm() / 2;
         }
+        esy[i] = es2 - esx[i].dot(es2) * esx[i];
+        esy[i] /= esy[i].norm();
         es2 /= es2.norm();
-        esy[i].x() = -esx[i].y();
-        esy[i].y() = esx[i].x();
         dudy[i] = (duds2 - esx[i].dot(es2) * dudx[i]) / esy[i].dot(es2);
     }
 

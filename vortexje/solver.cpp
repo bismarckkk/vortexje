@@ -52,7 +52,7 @@ mkdir_helper(const string folder)
    
    @param[in]   log_folder  Logging output folder.
 */
-Solver::Solver(const string &log_folder) : log_folder(log_folder)
+Solver::Solver(const std::string &_name, const std::string &log_folder, bool enableLU) : log_folder(log_folder)
 {
     // Initialize wind:
     freestream_velocity = Vector3d(0, 0, 0);
@@ -65,6 +65,9 @@ Solver::Solver(const string &log_folder) : log_folder(log_folder)
 
     // Open log files:
     mkdir_helper(log_folder);
+
+    name = _name;
+    enable_LU_solver = enableLU;
 }
 
 /**
@@ -732,27 +735,33 @@ Solver::solve(double dt, bool propagate)
 
         // Compute new doublet distribution:
         LOG.debug("Computing doublet distribution.");
-
         VectorXd b = source_influence_coefficients * source_coefficients;
 
-        BiCGSTAB<MatrixXd, DiagonalPreconditioner<double> > solver(A);
-        solver.setMaxIterations(Parameters::linear_solver_max_iterations);
-        solver.setTolerance(Parameters::linear_solver_tolerance);
+        if (enable_LU_solver) {
+            if (!solverLU) {
+                solverLU = std::make_shared<Eigen::PartialPivLU<Eigen::MatrixXd>>(A);
+            }
+            doublet_coefficients = solverLU->solve(b);
+        } else {
+            BiCGSTAB<MatrixXd, DiagonalPreconditioner<double> > solver(A);
+            solver.setMaxIterations(Parameters::linear_solver_max_iterations);
+            solver.setTolerance(Parameters::linear_solver_tolerance);
 
-        doublet_coefficients = solver.solveWithGuess(b, previous_doublet_coefficients);
+            doublet_coefficients = solver.solveWithGuess(b, previous_doublet_coefficients);
 
-        if (solver.info() != Success) {
-            cerr << "Solver: Computing doublet distribution failed (" << solver.iterations();
-            cerr << " iterations with estimated error=" << solver.error() << ")." << endl;
+            if (solver.info() != Success) {
+                cerr << "Solver: Computing doublet distribution failed (" << solver.iterations();
+                cerr << " iterations with estimated error=" << solver.error() << ")." << endl;
 
-            if (std::isnan(solver.error())) {
-                throw runtime_error("Solver: NaN error in doublet distribution.");
+                if (std::isnan(solver.error())) {
+                    throw runtime_error("Solver: NaN error in doublet distribution.");
+                }
+
+                return false;
             }
 
-            return false;
+            LOG.info("{}: Computed doublet distribution, {} iterations, estimated error {}.", name, solver.iterations(), solver.error());
         }
-
-        LOG.info("Done computing doublet distribution in {} iterations with estimated error {}.", solver.iterations(), solver.error());
 
         // Check for convergence from second iteration onwards.
         bool converged = false;
@@ -1850,4 +1859,8 @@ void Solver::set_inflow_velocity_getter(
         std::function<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &)> getter
 ) {
     get_inflow_velocity = getter;
+}
+
+void Solver::rebuildSolver() {
+    solverLU.reset();
 }

@@ -34,9 +34,11 @@ class Solver
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
         
-    Solver(const std::string &log_folder);
+    Solver(const std::string &_name, const std::string &log_folder, bool enableLU = false);
     
     ~Solver();
+
+    void rebuildSolver();
     
     /**
        Data structure containing a body and its boundary layer.
@@ -73,6 +75,8 @@ public:
     void add_body(std::shared_ptr<Body> body);
     
     void add_body(std::shared_ptr<Body> body, std::shared_ptr<BoundaryLayer> boundary_layer);
+
+    std::shared_ptr<Eigen::PartialPivLU<Eigen::MatrixXd>> solverLU;
     
     /**
        Freestream velocity.
@@ -156,7 +160,10 @@ public:
     void set_inflow_velocity_getter(std::function<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &)> getter);
 
 private:
+    bool enable_LU_solver;
+
     std::string log_folder;
+    std::string name;
 
     std::function<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &)> get_inflow_velocity;
     

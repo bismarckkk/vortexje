@@ -24,6 +24,11 @@
 namespace Vortexje
 {
 
+struct NearestPanelInfo {
+    Eigen::Vector3d normal, point;
+    double distance;
+};
+
 /**
    Class for solution of the panel method equations, and their propagation in time.
    
@@ -37,6 +42,8 @@ public:
     Solver(const std::string &_name, const std::string &log_folder, bool enableLU = false);
     
     ~Solver();
+
+    [[nodiscard]] NearestPanelInfo nearest_panel(const Eigen::Vector3d &x) const;
 
     void rebuildSolver();
     
@@ -103,6 +110,7 @@ public:
     double velocity_potential(const Eigen::Vector3d &x) const;
     
     Eigen::Vector3d velocity(const Eigen::Vector3d &x) const;
+    Eigen::Matrix3Xd velocity_gradient(const Eigen::Vector3d &x) const;
     
     double surface_velocity_potential(const std::shared_ptr<Surface> &surface, int panel) const;
     

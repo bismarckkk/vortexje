@@ -200,6 +200,29 @@ Solver::velocity(const Eigen::Vector3d &x) const
     return compute_velocity_interpolated(x, ignore_set);
 }
 
+Eigen::Matrix3Xd Solver::velocity_gradient(const Eigen::Vector3d &x) const {
+    Eigen::Vector3d x1, x2, y1, y2, z1, z2;
+    Eigen::Vector3d vx1, vx2, vy1, vy2, vz1, vz2;
+    double h = 1e-3;
+    x1 = x + Eigen::Vector3d(h, 0, 0);
+    x2 = x - Eigen::Vector3d(h, 0, 0);
+    y1 = x + Eigen::Vector3d(0, h, 0);
+    y2 = x - Eigen::Vector3d(0, h, 0);
+    z1 = x + Eigen::Vector3d(0, 0, h);
+    z2 = x - Eigen::Vector3d(0, 0, h);
+    vx1 = velocity(x1);
+    vx2 = velocity(x2);
+    vy1 = velocity(y1);
+    vy2 = velocity(y2);
+    vz1 = velocity(z1);
+    vz2 = velocity(z2);
+    Eigen::Matrix3Xd J(3, 3);
+    J.col(0) = (vx1 - vx2) / (2 * h);
+    J.col(1) = (vy1 - vy2) / (2 * h);
+    J.col(2) = (vz1 - vz2) / (2 * h);
+    return J;
+}
+
 /**
    Returns the surface velocity potential for the given panel.
 
@@ -1863,4 +1886,32 @@ void Solver::set_inflow_velocity_getter(
 
 void Solver::rebuildSolver() {
     solverLU.reset();
+}
+
+NearestPanelInfo Solver::nearest_panel(const Vector3d &x) const {
+    NearestPanelInfo info;
+    info.distance = std::numeric_limits<double>::infinity();
+    for (auto& body : bodies) {
+        for (auto& surface : body->body->non_lifting_surfaces) {
+            for (int i = 0; i < surface->surface->n_panels(); i++) {
+                double distance = (surface->surface->panel_collocation_point(i, false) - x).norm();
+                if (distance < info.distance) {
+                    info.distance = distance;
+                    info.point = surface->surface->panel_collocation_point(i, false);
+                    info.normal = surface->surface->panel_normal(i);
+                }
+            }
+        }
+        for (auto& surface : body->body->lifting_surfaces) {
+            for (int i = 0; i < surface->lifting_surface->n_panels(); i++) {
+                double distance = (surface->lifting_surface->panel_collocation_point(i, false) - x).norm();
+                if (distance < info.distance) {
+                    info.distance = distance;
+                    info.point = surface->lifting_surface->panel_collocation_point(i, false);
+                    info.normal = surface->lifting_surface->panel_normal(i);
+                }
+            }
+        }
+    }
+    return info;
 }

@@ -19,7 +19,7 @@ int    Parameters::linear_solver_max_iterations       = 20000;
 
 double Parameters::linear_solver_tolerance            = numeric_limits<double>::epsilon();
 
-bool   Parameters::unsteady_bernoulli                 = true;
+bool   Parameters::unsteady_bernoulli                 = false;
 
 bool   Parameters::convect_wake                       = true;
 

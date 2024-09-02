@@ -26,7 +26,7 @@ namespace Vortexje
 
 struct NearestPanelInfo {
     Eigen::Vector3d normal, point;
-    double distance;
+    double distance, L;
 };
 
 /**

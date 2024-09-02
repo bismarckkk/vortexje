@@ -1881,7 +1881,7 @@ void Solver::refresh_inflow_velocity() {
 void Solver::set_inflow_velocity_getter(
         std::function<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &)> getter
 ) {
-    get_inflow_velocity = getter;
+    get_inflow_velocity = std::move(getter);
 }
 
 void Solver::rebuildSolver() {
@@ -1899,6 +1899,7 @@ NearestPanelInfo Solver::nearest_panel(const Vector3d &x) const {
                     info.distance = distance;
                     info.point = surface->surface->panel_collocation_point(i, false);
                     info.normal = surface->surface->panel_normal(i);
+                    info.L = std::sqrt(surface->surface->panel_surface_areas[i]);
                 }
             }
         }
@@ -1909,6 +1910,7 @@ NearestPanelInfo Solver::nearest_panel(const Vector3d &x) const {
                     info.distance = distance;
                     info.point = surface->lifting_surface->panel_collocation_point(i, false);
                     info.normal = surface->lifting_surface->panel_normal(i);
+                    info.L = std::sqrt(surface->lifting_surface->panel_surface_areas[i]);
                 }
             }
         }

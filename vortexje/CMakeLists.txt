@@ -41,7 +41,7 @@ add_library(
 )
 
 target_link_libraries(
-        vortexje
+        vortexje PUBLIC
         boundary-layers
         empirical-wakes
         surface-loaders

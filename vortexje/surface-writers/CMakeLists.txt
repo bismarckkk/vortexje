@@ -16,6 +16,6 @@ find_package(HDF5 1.12.3 REQUIRED)
 
 add_library(surface-writers OBJECT ${SRCS})
 target_link_libraries(surface-writers PUBLIC ${HDF5_LIBRARIES} ConfigProvider)
-target_include_directories(surface-writers PUBLIC ../../../highfive/include)
+target_include_directories(surface-writers PUBLIC ../../../highfive/include ${HDF5_INCLUDE_DIR})
 
 install(FILES ${HDRS} DESTINATION include/vortexje/surface-writers)

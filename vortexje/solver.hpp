@@ -185,6 +185,7 @@ private:
         
     Eigen::VectorXd surface_velocity_potentials;
     Eigen::MatrixXd surface_velocities;
+    Eigen::MatrixXd surface_apparent_velocity;
     Eigen::VectorXd pressure_coefficients;  
     
     Eigen::VectorXd previous_surface_velocity_potentials; 

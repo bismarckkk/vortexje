@@ -39,6 +39,7 @@ using namespace Vortexje;
 #define VIEW_NAME_DOUBLET_DISTRIBUTION  "mu"
 #define VIEW_NAME_PRESSURE_DISTRIBUTION "Cp"
 #define VIEW_NAME_VELOCITY_DISTRIBUTION "V"
+#define VIEW_NAME_APPARENT_VELOCITY_DISTRIBUTION "Va"
 
 // Helper to create folders:
 static void
@@ -137,6 +138,9 @@ Solver::add_body(std::shared_ptr<Body> body, std::shared_ptr<BoundaryLayer> boun
 
     surface_velocities.resize(n_non_wake_panels, 3);
     surface_velocities.setZero();
+
+    surface_apparent_velocity.resize(n_non_wake_panels, 3);
+    surface_apparent_velocity.setZero();
 
     pressure_coefficients.resize(n_non_wake_panels);
     pressure_coefficients.setZero();
@@ -846,8 +850,10 @@ Solver::solve(double dt, bool propagate)
 #pragma omp parallel
                 {
 #pragma omp for schedule(dynamic, 1)
-                    for (i = 0; i < d->surface->n_panels(); i++)
+                    for (i = 0; i < d->surface->n_panels(); i++) {
                         surface_velocities.row(offset + i) = compute_surface_velocity(bd->body, d->surface, i);
+                        surface_apparent_velocity.row(offset + i) = bd->body->panel_kinematic_velocity(d->surface, i) - freestream_velocity;
+                    }
                 }
 
                 offset += d->surface->n_panels();
@@ -861,8 +867,10 @@ Solver::solve(double dt, bool propagate)
 #pragma omp parallel
                 {
 #pragma omp for schedule(dynamic, 1)
-                    for (i = 0; i < d->surface->n_panels(); i++)
+                    for (i = 0; i < d->surface->n_panels(); i++) {
                         surface_velocities.row(offset + i) = compute_surface_velocity(bd->body, d->surface, i);
+                        surface_apparent_velocity.row(offset + i) = bd->body->panel_kinematic_velocity(d->surface, i) - freestream_velocity;
+                    }
                 }
 
                 offset += d->surface->n_panels();
@@ -1155,11 +1163,13 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             MatrixXd non_lifting_surface_source_coefficients(d->surface->n_panels(), 1);
             MatrixXd non_lifting_surface_pressure_coefficients(d->surface->n_panels(), 1);
             MatrixXd non_lifting_surface_velocity_vectors(d->surface->n_panels(), 3);
+            MatrixXd non_lifting_surface_apparent_velocity_vectors(d->surface->n_panels(), 3);
             for (int i = 0; i < d->surface->n_panels(); i++) {
                 non_lifting_surface_doublet_coefficients(i, 0)  = doublet_coefficients(offset + i);
                 non_lifting_surface_source_coefficients(i, 0)   = source_coefficients(offset + i);
                 non_lifting_surface_pressure_coefficients(i, 0) = pressure_coefficients(offset + i);
                 non_lifting_surface_velocity_vectors.row(i)     = surface_velocities.row(offset + i);
+                non_lifting_surface_apparent_velocity_vectors.row(i) = surface_apparent_velocity.row(offset + i);
             }
 
             offset += d->surface->n_panels();
@@ -1178,6 +1188,9 @@ Solver::log(int step_number, SurfaceWriter &writer) const
 
             view_names.push_back(VIEW_NAME_VELOCITY_DISTRIBUTION);
             view_data.push_back(non_lifting_surface_velocity_vectors);
+
+            view_names.push_back(VIEW_NAME_APPARENT_VELOCITY_DISTRIBUTION);
+            view_data.push_back(non_lifting_surface_apparent_velocity_vectors);
 
             stringstream ss;
             ss << log_folder << "/" << bd->body->id << "/" << d->surface->id << "_" << step_number << writer.file_extension();
@@ -1202,11 +1215,13 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             MatrixXd lifting_surface_source_coefficients(d->lifting_surface->n_panels(), 1);
             MatrixXd lifting_surface_pressure_coefficients(d->lifting_surface->n_panels(), 1);
             MatrixXd lifting_surface_velocity_vectors(d->surface->n_panels(), 3);
+            MatrixXd lifting_surface_apparent_velocity_vectors(d->surface->n_panels(), 3);
             for (int i = 0; i < d->lifting_surface->n_panels(); i++) {
                 lifting_surface_doublet_coefficients(i, 0)  = doublet_coefficients(offset + i);
                 lifting_surface_source_coefficients(i, 0)   = source_coefficients(offset + i);
                 lifting_surface_pressure_coefficients(i, 0) = pressure_coefficients(offset + i);
                 lifting_surface_velocity_vectors.row(i)     = surface_velocities.row(offset + i);
+                lifting_surface_apparent_velocity_vectors.row(i) = surface_apparent_velocity.row(offset + i);
             }
 
             vector<double> lift, drag;
@@ -1263,6 +1278,9 @@ Solver::log(int step_number, SurfaceWriter &writer) const
 
             view_names.push_back(VIEW_NAME_VELOCITY_DISTRIBUTION);
             view_data.push_back(lifting_surface_velocity_vectors);
+
+            view_names.push_back(VIEW_NAME_APPARENT_VELOCITY_DISTRIBUTION);
+            view_data.push_back(lifting_surface_apparent_velocity_vectors);
 
             stringstream ss;
             ss << log_folder << "/" << bd->body->id << "/" << d->lifting_surface->id << "_" << step_number << writer.file_extension();

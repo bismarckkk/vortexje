@@ -1862,35 +1862,51 @@ Solver::compute_index(const std::shared_ptr<Surface> &surface, int panel) const
 }
 
 void Solver::refresh_inflow_velocity() {
-    if (!get_inflow_velocity) {
-        return;
+    if (get_inflow_velocity) {
+        std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> pos;
+        for (auto& body : bodies) {
+            for (auto& surface : body->body->non_lifting_surfaces) {
+                for (int i = 0; i < surface->surface->n_panels(); i++) {
+                    pos.push_back(surface->surface->panel_collocation_point(i, false));
+                }
+            }
+            for (auto& surface : body->body->lifting_surfaces) {
+                for (int i = 0; i < surface->lifting_surface->n_panels(); i++) {
+                    pos.push_back(surface->lifting_surface->panel_collocation_point(i, false));
+                }
+            }
+        }
+        auto inflow_velocity = get_inflow_velocity(pos);
+        int offset = 0;
+        for (auto& body : bodies) {
+            for (auto& surface : body->body->non_lifting_surfaces) {
+                for (int i = 0; i < surface->surface->n_panels(); i++) {
+                    surface->surface->panel_velocity_inflow[i] = inflow_velocity[offset];
+                    offset++;
+                }
+            }
+            for (auto& surface : body->body->lifting_surfaces) {
+                for (int i = 0; i < surface->lifting_surface->n_panels(); i++) {
+                    surface->lifting_surface->panel_velocity_inflow[i] = inflow_velocity[offset];
+                    offset++;
+                }
+            }
+        }
     }
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> pos;
-    for (auto& body : bodies) {
-        for (auto& surface : body->body->non_lifting_surfaces) {
-            for (int i = 0; i < surface->surface->n_panels(); i++) {
-                pos.push_back(surface->surface->panel_collocation_point(i, false));
-            }
-        }
-        for (auto& surface : body->body->lifting_surfaces) {
-            for (int i = 0; i < surface->lifting_surface->n_panels(); i++) {
-                pos.push_back(surface->lifting_surface->panel_collocation_point(i, false));
-            }
-        }
-    }
-    auto inflow_velocity = get_inflow_velocity(pos);
-    int offset = 0;
-    for (auto& body : bodies) {
-        for (auto& surface : body->body->non_lifting_surfaces) {
-            for (int i = 0; i < surface->surface->n_panels(); i++) {
-                surface->surface->panel_velocity_inflow[i] = inflow_velocity[offset];
-                offset++;
-            }
-        }
-        for (auto& surface : body->body->lifting_surfaces) {
-            for (int i = 0; i < surface->lifting_surface->n_panels(); i++) {
-                surface->lifting_surface->panel_velocity_inflow[i] = inflow_velocity[offset];
-                offset++;
+    if (get_inflow_velocity_py) {
+        for (auto& body : bodies) {
+            for (auto& surface : body->body->lifting_surfaces) {
+                Eigen::MatrixXd _pos, _normal;
+                _pos.resize(surface->lifting_surface->n_panels(), 3);
+                _normal.resize(surface->lifting_surface->n_panels(), 3);
+                for (int i = 0; i < surface->lifting_surface->n_panels(); i++) {
+                    _pos.row(i) = surface->lifting_surface->panel_collocation_point(i, false);
+                    _normal.row(i) = surface->lifting_surface->panel_normal(i);
+                }
+                auto _vel = get_inflow_velocity_py(_pos, _normal, surface->lifting_surface->n_spanwise_panels());
+                for (int i = 0; i < surface->lifting_surface->n_panels(); i++) {
+                    surface->lifting_surface->panel_velocity_inflow[i] = _vel.row(i);
+                }
             }
         }
     }
@@ -1934,4 +1950,9 @@ NearestPanelInfo Solver::nearest_panel(const Vector3d &x) const {
         }
     }
     return info;
+}
+
+void Solver::set_inflow_velocity_getter_py(
+        std::function<Eigen::MatrixXd(const Eigen::MatrixXd &, const Eigen::MatrixXd &, int)> getter) {
+    get_inflow_velocity_py = std::move(getter);
 }

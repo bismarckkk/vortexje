@@ -166,6 +166,7 @@ public:
     void refresh_inflow_velocity();
 
     void set_inflow_velocity_getter(std::function<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &)> getter);
+    void set_inflow_velocity_getter_py(std::function<Eigen::MatrixXd(const Eigen::MatrixXd &, const Eigen::MatrixXd &, int)> getter);
 
 private:
     bool enable_LU_solver;
@@ -174,6 +175,7 @@ private:
     std::string name;
 
     std::function<std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>>(const std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> &)> get_inflow_velocity;
+    std::function<Eigen::MatrixXd(const Eigen::MatrixXd &, const Eigen::MatrixXd &, int)> get_inflow_velocity_py;
     
     std::vector<std::shared_ptr<Body::SurfaceData> > non_wake_surfaces;
     int n_non_wake_panels;

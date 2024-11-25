@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include <vortexje/wake.hpp>
+#include <vortexje/spline.h>
 
 using namespace std;
 using namespace Eigen;
@@ -211,44 +212,182 @@ std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> Wake::get_
     }
     if (last_doublet_coefficients.empty()) {
         last_doublet_coefficients = std::vector<double>(lifting_surface->n_spanwise_panels(), 0);
+        u0_v = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u0_x = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u0_y = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u0_z = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u0_mu = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u05_v = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u05_x = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u05_y = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u05_z = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u05_mu = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u1_v = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u1_x = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u1_y = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u1_z = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
+        u1_mu = std::vector<double>(lifting_surface->n_spanwise_nodes() + 1, 0);
     }
 
-    std::vector<double> dudx(lifting_surface->n_spanwise_panels(), 0);
-    std::vector<double> dudy(lifting_surface->n_spanwise_panels(), 0);
-    std::vector<Eigen::Vector3d> esx(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
-    std::vector<Eigen::Vector3d> esy(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
+    Eigen::Vector3d last_point_0 = nodes[lifting_surface->n_spanwise_nodes()];
+    Eigen::Vector3d last_point_1 = nodes[0];
+    Eigen::Vector3d last_point_05 = (last_point_0 + last_point_1) / 2;
+    u0_x[0] = last_point_0.x();
+    u0_y[0] = last_point_0.y();
+    u0_z[0] = last_point_0.z();
+    u05_x[0] = last_point_05.x();
+    u05_y[0] = last_point_05.y();
+    u05_z[0] = last_point_05.z();
+    u1_x[0] = last_point_1.x();
+    u1_y[0] = last_point_1.y();
+    u1_z[0] = last_point_1.z();
+
     for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
+        Eigen::Vector3d p0 = (nodes[i + lifting_surface->n_spanwise_nodes()] + nodes[i + lifting_surface->n_spanwise_nodes() + 1]) / 2;
+        u0_x[i + 1] = p0.x();
+        u0_y[i + 1] = p0.y();
+        u0_z[i + 1] = p0.z();
+        u0_v[i + 1] = u0_v[i] + (p0 - last_point_0).norm();
+        u0_mu[i + 1] = (doublet_coefficients[i + lifting_surface->n_spanwise_nodes()] + doublet_coefficients[i]) / 2;
+        last_point_0 = p0;
+
+        Eigen::Vector3d p05 = panel_collocation_points[0][i];
+        u05_x[i + 1] = p05.x();
+        u05_y[i + 1] = p05.y();
+        u05_z[i + 1] = p05.z();
+        u05_v[i + 1] = u05_v[i] + (p05 - last_point_05).norm();
+        u05_mu[i + 1] = doublet_coefficients[i];
+        last_point_05 = p05;
+
         Eigen::Vector3d p1 = (nodes[i] + nodes[i + 1]) / 2;
-        Eigen::Vector3d p2 = (nodes[i + lifting_surface->n_spanwise_nodes()] + nodes[i + lifting_surface->n_spanwise_nodes() + 1]) / 2;
-        esx[i] = p1 - p2;
-        dudx[i] = (doublet_coefficients[i + lifting_surface->n_spanwise_panels()] - last_doublet_coefficients[i]) / esx[i].norm() / 2;
-        esx[i] /= esx[i].norm();
-        last_doublet_coefficients[i] = doublet_coefficients[i];
+        u1_x[i + 1] = p1.x();
+        u1_y[i + 1] = p1.y();
+        u1_z[i + 1] = p1.z();
+        u1_v[i + 1] = u1_v[i] + (p1 - last_point_1).norm();
+        u1_mu[i + 1] = (doublet_coefficients[i] + last_doublet_coefficients[i]) / 2;
+        last_point_1 = p1;
     }
-    for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
-        Eigen::Vector3d p1 = (nodes[i] + nodes[i + lifting_surface->n_spanwise_nodes()]) / 2;
-        Eigen::Vector3d p2 = (nodes[i + 1] + nodes[i + 1 + lifting_surface->n_spanwise_nodes()]) / 2;
-        Eigen::Vector3d es2 = p1 - p2;
-        double duds2;
-        if (i == 0) {
-            duds2 = doublet_coefficients[i + 1] / es2.norm() / 2;
-        } else if (i == lifting_surface->n_spanwise_panels() - 1) {
-            duds2 = -doublet_coefficients[i - 1] / es2.norm() / 2;
-        } else {
-            duds2 = (doublet_coefficients[i + 1] - doublet_coefficients[i - 1]) / es2.norm() / 2;
-        }
-        esy[i] = es2 - esx[i].dot(es2) * esx[i];
-        esy[i] /= esy[i].norm();
-        es2 /= es2.norm();
-        dudy[i] = (duds2 - esx[i].dot(es2) * dudx[i]) / esy[i].dot(es2);
-    }
+
+    Eigen::Vector3d p0_end = nodes[lifting_surface->n_spanwise_nodes() + lifting_surface->n_spanwise_panels()];
+    Eigen::Vector3d p1_end = nodes[lifting_surface->n_spanwise_panels()];
+    Eigen::Vector3d p05_end = (p0_end + p1_end) / 2;
+    u0_x[lifting_surface->n_spanwise_nodes()] = p0_end.x();
+    u0_y[lifting_surface->n_spanwise_nodes()] = p0_end.y();
+    u0_z[lifting_surface->n_spanwise_nodes()] = p0_end.z();
+    u0_v[lifting_surface->n_spanwise_nodes()] = u0_v[lifting_surface->n_spanwise_panels()] + (p0_end - last_point_0).norm();
+    u05_x[lifting_surface->n_spanwise_nodes()] = p05_end.x();
+    u05_y[lifting_surface->n_spanwise_nodes()] = p05_end.y();
+    u05_z[lifting_surface->n_spanwise_nodes()] = p05_end.z();
+    u05_v[lifting_surface->n_spanwise_nodes()] = u05_v[lifting_surface->n_spanwise_panels()] + (p05_end - last_point_05).norm();
+    u1_x[lifting_surface->n_spanwise_nodes()] = p1_end.x();
+    u1_y[lifting_surface->n_spanwise_nodes()] = p1_end.y();
+    u1_z[lifting_surface->n_spanwise_nodes()] = p1_end.z();
+    u1_v[lifting_surface->n_spanwise_nodes()] = u1_v[lifting_surface->n_spanwise_panels()] + (p1_end - last_point_1).norm();
+
+    tk::spline s0_x(u0_v, u0_x);
+    tk::spline s0_y(u0_v, u0_y);
+    tk::spline s0_z(u0_v, u0_z);
+    tk::spline s0_mu(u0_v, u0_mu);
+    tk::spline s05_x(u05_v, u05_x);
+    tk::spline s05_y(u05_v, u05_y);
+    tk::spline s05_z(u05_v, u05_z);
+    tk::spline s05_mu(u05_v, u05_mu);
+    tk::spline s1_x(u1_v, u1_x);
+    tk::spline s1_y(u1_v, u1_y);
+    tk::spline s1_z(u1_v, u1_z);
+    tk::spline s1_mu(u1_v, u1_mu);
+
+    double v0_max = u0_v.back();
+    double v05_max = u05_v.back();
+    double v1_max = u1_v.back();
+
+    double v0_gap = v0_max / (double)lifting_surface->vpNumberPerStep;
+    double v05_gap = v05_max / (double)lifting_surface->vpNumberPerStep;
+    double v1_gap = v1_max / (double)lifting_surface->vpNumberPerStep;
+
+    Eigen::Vector3d last_p_05 = Eigen::Vector3d(s05_x(0), s05_y(0), s05_z(0));
+    double last_mu_05 = s05_mu(0);
 
     std::vector<Eigen::Vector3d> strength(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
     std::vector<Eigen::Vector3d> position(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
-    for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
-        strength[i] = panel_surface_areas[i] * (dudx[i] * esy[i] - dudy[i] * esx[i]);
-        position[i] = panel_collocation_points[0][i];
+
+    for (int i = 0; i < lifting_surface->vpNumberPerStep; i++) {
+        double v0 = v0_gap * ((double)i + 0.5);
+        double v05 = v05_gap * (i + 1);
+        double v1 = v1_gap * ((double)i + 0.5);
+
+        Eigen::Vector3d p_0 = Eigen::Vector3d(s0_x(v0), s0_y(v0), s0_z(v0));
+        Eigen::Vector3d p_05 = Eigen::Vector3d(s05_x(v05), s05_y(v05), s05_z(v05));
+        Eigen::Vector3d p_1 = Eigen::Vector3d(s1_x(v1), s1_y(v1), s1_z(v1));
+        double mu_0 = s0_mu(v0);
+        double mu_05 = s05_mu(v05);
+        double mu_1 = s1_mu(v1);
+
+        Eigen::Vector3d su = p_1 - p_0;
+        double lu = su.norm();
+        Eigen::Vector3d eu = su / lu;
+        double dmudu = (mu_1 - mu_0) / lu;
+
+        Eigen::Vector3d s2 = p_05 - last_p_05;
+        double l2 = s2.norm();
+        Eigen::Vector3d e2 = s2 / l2;
+        double dmud2 = (mu_05 - last_mu_05) / l2;
+
+        Eigen::Vector3d ev = e2 - eu.dot(e2) * eu;
+        ev.normalize();
+        double dmudv = (dmud2 - eu.dot(e2) * dmudu) / ev.dot(e2);
+
+        strength[i] = (su.cross(s2)).norm() * (dmudu * ev - dmudv * eu);
+        position[i] = (p_0 + p_05 + p_1 + last_p_05) / 4;
+
+        last_p_05 = p_05;
+        last_mu_05 = mu_05;
     }
+
+    for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
+        last_doublet_coefficients[i] = doublet_coefficients[i];
+    }
+
+/*
+ *
+ */
+
+//    std::vector<double> dudx(lifting_surface->n_spanwise_panels(), 0);
+//    std::vector<double> dudy(lifting_surface->n_spanwise_panels(), 0);
+//    std::vector<Eigen::Vector3d> esx(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
+//    std::vector<Eigen::Vector3d> esy(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
+//    for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
+//        Eigen::Vector3d p1 = (nodes[i] + nodes[i + 1]) / 2;
+//        Eigen::Vector3d p2 = (nodes[i + lifting_surface->n_spanwise_nodes()] + nodes[i + lifting_surface->n_spanwise_nodes() + 1]) / 2;
+//        esx[i] = p1 - p2;
+//        dudx[i] = (doublet_coefficients[i + lifting_surface->n_spanwise_panels()] - last_doublet_coefficients[i]) / esx[i].norm() / 2;
+//        esx[i] /= esx[i].norm();
+//        last_doublet_coefficients[i] = doublet_coefficients[i];
+//    }
+//    for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
+//        Eigen::Vector3d p1 = (nodes[i] + nodes[i + lifting_surface->n_spanwise_nodes()]) / 2;
+//        Eigen::Vector3d p2 = (nodes[i + 1] + nodes[i + 1 + lifting_surface->n_spanwise_nodes()]) / 2;
+//        Eigen::Vector3d es2 = p1 - p2;
+//        double duds2;
+//        if (i == 0) {
+//            duds2 = doublet_coefficients[i + 1] / es2.norm() / 2;
+//        } else if (i == lifting_surface->n_spanwise_panels() - 1) {
+//            duds2 = -doublet_coefficients[i - 1] / es2.norm() / 2;
+//        } else {
+//            duds2 = (doublet_coefficients[i + 1] - doublet_coefficients[i - 1]) / es2.norm() / 2;
+//        }
+//        esy[i] = es2 - esx[i].dot(es2) * esx[i];
+//        esy[i] /= esy[i].norm();
+//        es2 /= es2.norm();
+//        dudy[i] = (duds2 - esx[i].dot(es2) * dudx[i]) / esy[i].dot(es2);
+//    }
+//
+//    std::vector<Eigen::Vector3d> strength(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
+//    std::vector<Eigen::Vector3d> position(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
+//    for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
+//        strength[i] = panel_surface_areas[i] * (dudx[i] * esy[i] - dudy[i] * esx[i]);
+//        position[i] = panel_collocation_points[0][i];
+//    }
 
     remove_layer();
 

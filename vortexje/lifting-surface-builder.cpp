@@ -159,4 +159,6 @@ LiftingSurfaceBuilder::finish(const std::vector<std::vector<int> > &node_strips,
             
     // Finish trailing edge setup.
     lifting_surface.finish_trailing_edge();
+
+    lifting_surface.vpNumberPerStep = node_strips.size() - 1;
 }

@@ -52,6 +52,9 @@ public:
 
     std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> get_vortex_particles();
     std::vector<double> last_doublet_coefficients;
+    std::vector<double> u0_v, u0_x, u0_y, u0_z, u0_mu;
+    std::vector<double> u05_v, u05_x, u05_y, u05_z, u05_mu;
+    std::vector<double> u1_v, u1_x, u1_y, u1_z, u1_mu;
 };
 
 };

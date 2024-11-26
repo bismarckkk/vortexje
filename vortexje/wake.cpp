@@ -206,6 +206,33 @@ Wake::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
     return one_over_4pi * velocity;
 }
 
+Eigen::Vector3d calcVortex(
+    const Eigen::Vector3d& p01,
+    const Eigen::Vector3d& p10,
+    const Eigen::Vector3d& p12,
+    const Eigen::Vector3d& p21,
+    double mu01,
+    double mu10,
+    double mu12,
+    double mu21
+) {
+    Eigen::Vector3d su = p21 - p01;
+    double lu = su.norm();
+    Eigen::Vector3d eu = su / lu;
+    double dmudu = (mu21 - mu01) / lu;
+
+    Eigen::Vector3d s2 = p12 - p10;
+    double l2 = s2.norm();
+    Eigen::Vector3d e2 = s2 / l2;
+    double dmud2 = (mu12 - mu10) / l2;
+
+    Eigen::Vector3d ev = e2 - eu.dot(e2) * eu;
+    ev.normalize();
+    double dmudv = (dmud2 - eu.dot(e2) * dmudu) / ev.dot(e2);
+
+    return (su.cross(s2)).norm() * (dmudu * ev - dmudv * eu);
+}
+
 std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> Wake::get_vortex_particles() {
     if (n_panels() / lifting_surface->n_spanwise_panels() < 2) {
         return std::make_pair(std::vector<Eigen::Vector3d>(), std::vector<Eigen::Vector3d>());
@@ -305,43 +332,88 @@ std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> Wake::get_
     double v05_gap = v05_max / (double)lifting_surface->vpNumberPerStep;
     double v1_gap = v1_max / (double)lifting_surface->vpNumberPerStep;
 
-    Eigen::Vector3d last_p_05 = Eigen::Vector3d(s05_x(0), s05_y(0), s05_z(0));
-    double last_mu_05 = s05_mu(0);
+    // 此处开始两位尾数分别代表u, v上的坐标
+    // 对于u，上游边界为0，下游边界为2
+    // 对于v，当前分段底部为0，顶部为2
+    Eigen::Vector3d p00 = Eigen::Vector3d(s0_x(0), s0_y(0), s0_z(0));
+    Eigen::Vector3d p10 = Eigen::Vector3d(s05_x(0), s05_y(0), s05_z(0));
+    Eigen::Vector3d p20 = Eigen::Vector3d(s1_x(0), s1_y(0), s1_z(0));
+    double mu00 = s0_mu(0);
+    double mu10 = s05_mu(0);
+    double mu20 = s1_mu(0);
 
-    std::vector<Eigen::Vector3d> strength(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
-    std::vector<Eigen::Vector3d> position(lifting_surface->n_spanwise_panels(), Eigen::Vector3d(0, 0, 0));
+    int vNumber = lifting_surface->vpNumberPerStep * lifting_surface->vlNumber;
+    std::vector<Eigen::Vector3d> strength(vNumber, Eigen::Vector3d(0, 0, 0));
+    std::vector<Eigen::Vector3d> position(vNumber, Eigen::Vector3d(0, 0, 0));
 
     for (int i = 0; i < lifting_surface->vpNumberPerStep; i++) {
-        double v0 = v0_gap * ((double)i + 0.5);
-        double v05 = v05_gap * (i + 1);
-        double v1 = v1_gap * ((double)i + 0.5);
+        double v01 = v0_gap * ((double)i + 0.5);
+        double v11 = v05_gap * ((double)i + 0.5);
+        double v21 = v1_gap * ((double)i + 0.5);
+        double v02 = v01 + v0_gap / 2;
+        double v12 = v11 + v05_gap / 2;
+        double v22 = v21 + v1_gap / 2;
 
-        Eigen::Vector3d p_0 = Eigen::Vector3d(s0_x(v0), s0_y(v0), s0_z(v0));
-        Eigen::Vector3d p_05 = Eigen::Vector3d(s05_x(v05), s05_y(v05), s05_z(v05));
-        Eigen::Vector3d p_1 = Eigen::Vector3d(s1_x(v1), s1_y(v1), s1_z(v1));
-        double mu_0 = s0_mu(v0);
-        double mu_05 = s05_mu(v05);
-        double mu_1 = s1_mu(v1);
+        Eigen::Vector3d p01 = Eigen::Vector3d(s0_x(v01), s0_y(v01), s0_z(v01));
+        Eigen::Vector3d p11 = Eigen::Vector3d(s05_x(v11), s05_y(v11), s05_z(v11));
+        Eigen::Vector3d p21 = Eigen::Vector3d(s1_x(v21), s1_y(v21), s1_z(v21));
 
-        Eigen::Vector3d su = p_1 - p_0;
-        double lu = su.norm();
-        Eigen::Vector3d eu = su / lu;
-        double dmudu = (mu_1 - mu_0) / lu;
+        Eigen::Vector3d p02 = Eigen::Vector3d(s0_x(v02), s0_y(v02), s0_z(v02));
+        Eigen::Vector3d p12 = Eigen::Vector3d(s05_x(v12), s05_y(v12), s05_z(v12));
+        Eigen::Vector3d p22 = Eigen::Vector3d(s1_x(v22), s1_y(v22), s1_z(v22));
 
-        Eigen::Vector3d s2 = p_05 - last_p_05;
-        double l2 = s2.norm();
-        Eigen::Vector3d e2 = s2 / l2;
-        double dmud2 = (mu_05 - last_mu_05) / l2;
+        double mu01 = s0_mu(v01);
+        double mu11 = s05_mu(v11);
+        double mu21 = s1_mu(v21);
 
-        Eigen::Vector3d ev = e2 - eu.dot(e2) * eu;
-        ev.normalize();
-        double dmudv = (dmud2 - eu.dot(e2) * dmudu) / ev.dot(e2);
+        double mu02 = s0_mu(v02);
+        double mu12 = s05_mu(v12);
+        double mu22 = s1_mu(v22);
 
-        strength[i] = (su.cross(s2)).norm() * (dmudu * ev - dmudv * eu);
-        position[i] = (p_0 + p_05 + p_1 + last_p_05) / 4;
+        Eigen::Vector3d _p01 = p01;
+        double _mu01 = mu01;
+        double u_gap = 1. / lifting_surface->vlNumber;
 
-        last_p_05 = p_05;
-        last_mu_05 = mu_05;
+        // _开头的变量的后缀的u坐标0代表当前网格左边界，2代表右边界，与上述描述不同
+        for (int j = 0; j < lifting_surface->vlNumber; j++) {
+            double u1 = u_gap * (j + 0.5);
+            double u2 = u_gap * (j + 1);
+            Eigen::Vector3d _p10, _p12, _p21;
+            double _mu10, _mu12, _mu21;
+
+            if (u1 < 0.5) {
+                _p10 = p00 + (p10 - p00) * u1 * 2;
+                _mu10 = mu00 + (mu10 - mu00) * u1 * 2;
+                _p12 = p02 + (p12 - p02) * u1 * 2;
+                _mu12 = mu02 + (mu12 - mu02) * u1 * 2;
+            } else {
+                _p10 = p10 + (p20 - p10) * (u1 - 0.5) * 2;
+                _mu10 = mu10 + (mu20 - mu10) * (u1 - 0.5) * 2;
+                _p12 = p12 + (p22 - p12) * (u1 - 0.5) * 2;
+                _mu12 = mu12 + (mu22 - mu12) * (u1 - 0.5) * 2;
+            }
+
+            if (u2 < 0.5) {
+                _p21 = p01 + (p11 - p01) * u2 * 2;
+                _mu21 = mu01 + (mu11 - mu01) * u2 * 2;
+            } else {
+                _p21 = p11 + (p21 - p11) * (u2 - 0.5) * 2;
+                _mu21 = mu11 + (mu21 - mu11) * (u2 - 0.5) * 2;
+            }
+
+            strength[i * lifting_surface->vlNumber + j] = calcVortex(_p01, _p10, _p12, _p21, _mu01, _mu10, _mu12, _mu21);
+            position[i * lifting_surface->vlNumber + j] = (_p01 + _p10 + _p12 + _p21) / 4;
+
+            _p01 = _p21;
+            _mu01 = _mu21;
+        }
+
+        p00 = p02;
+        p10 = p12;
+        p20 = p22;
+        mu00 = mu02;
+        mu10 = mu12;
+        mu20 = mu22;
     }
 
     for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {

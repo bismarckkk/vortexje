@@ -1500,8 +1500,12 @@ Solver::compute_reference_velocity_squared(const std::shared_ptr<Body> &body) co
 double
 Solver::compute_pressure_coefficient(const Vector3d &surface_velocity, double dphidt, double v_ref_squared) const
 {
-    double ma2 = v_ref_squared / (1.4 * 287 * CP.temperature);
-    double C_p = (1 - (surface_velocity.squaredNorm() + 2 * dphidt) / v_ref_squared) / std::sqrt(1. - ma2);
+    double ma_factor = 1;
+    if (true) {
+        double ma2 = v_ref_squared / (1.4 * 287 * CP.temperature);
+        ma_factor = 1.0 / std::sqrt(1. - ma2);
+    }
+    double C_p = (1 - (surface_velocity.squaredNorm() + 2 * dphidt) / v_ref_squared) * ma_factor;
 
     return C_p;
 }

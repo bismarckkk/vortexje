@@ -61,7 +61,8 @@ public:
     Eigen::Vector3d lift_dir=Eigen::Vector3d::Zero(), drag_dir=Eigen::Vector3d::Zero();
     std::vector<double> dx;
 
-    int vpNumberPerStep;
+    int vpNumberPerStep = 10;
+    int vlNumber = 1;
     
     int n_chordwise_nodes() const;
     int n_chordwise_panels() const;

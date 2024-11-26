@@ -11,7 +11,7 @@
 #include <highfive/highfive.hpp>
 #include <highfive/eigen.hpp>
 
-#include "../../../utils/ConfigProvider.hpp"
+#include "../../../utils/UPMConfigProvider.hpp"
 #include "xdmf-surface-writer.hpp"
 
 const char *Vortexje::XdmfSurfaceWriter::file_extension() const {
@@ -29,7 +29,7 @@ bool Vortexje::XdmfSurfaceWriter::write(const std::shared_ptr<Surface> &surface,
     }
 
     std::string filename = _filename + "xmf";
-    LOG.debug("Surface {}: Saving to {}.", surface->id, filename);
+    PLOG.debug("Surface {}: Saving to {}.", surface->id, filename);
 
     size_t last_underscore = _filename.rfind('_');
     size_t last_dot = _filename.rfind('.');

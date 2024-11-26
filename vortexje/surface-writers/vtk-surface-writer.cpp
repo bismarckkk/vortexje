@@ -11,7 +11,7 @@
 #include <fstream>
 
 #include <vortexje/surface-writers/vtk-surface-writer.hpp>
-#include "../../../utils/ConfigProvider.hpp"
+#include "../../../utils/UPMConfigProvider.hpp"
 
 using namespace std;
 using namespace Eigen;
@@ -45,7 +45,7 @@ VTKSurfaceWriter::write(const std::shared_ptr<Surface> &surface, const string &f
                         int node_offset, int panel_offset,
                         const std::vector<std::string> &view_names, const vector<MatrixXd, Eigen::aligned_allocator<MatrixXd> > &view_data)
 {
-    LOG.debug("Surface " + surface->id + ": Saving to " + filename + ".");
+    PLOG.debug("Surface " + surface->id + ": Saving to " + filename + ".");
     
     // Save surface to VTK file:
     ofstream f;

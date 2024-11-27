@@ -766,6 +766,7 @@ Solver::solve(double dt, bool propagate)
 
         if (enable_LU_solver) {
             if (!solverLU) {
+                PLOG.info("Rebuilding {} LU solver.", name);
                 solverLU = std::make_shared<Eigen::PartialPivLU<Eigen::MatrixXd>>(A);
             }
             doublet_coefficients = solverLU->solve(b);

@@ -291,7 +291,7 @@ std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> Wake::get_
         u0_y[i + 1] = p0.y();
         u0_z[i + 1] = p0.z();
         u0_v[i + 1] = u0_v[i] + (p0 - last_point_0).norm();
-        u0_mu[i + 1] = (doublet_coefficients[i + lifting_surface->n_spanwise_nodes()] + doublet_coefficients[i]) / 2;
+        u0_mu[i + 1] = (doublet_coefficients[i + lifting_surface->n_spanwise_panels()] + doublet_coefficients[i]) / 2;
         last_point_0 = p0;
 
         Eigen::Vector3d p05 = panel_collocation_points[0][i];

@@ -44,6 +44,7 @@ public:
     virtual void update_properties(double dt);
     
     virtual Eigen::Vector3d vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const;
+    Eigen::Vector3d vortex_line_velocity(const Eigen::Vector3d &x) const;
     
     /**
        Strengths of the doublet, or vortex ring, panels.

@@ -1338,6 +1338,9 @@ Solver::compute_source_coefficient(const std::shared_ptr<Body> &body, const std:
                     velocity -= d->wake->vortex_ring_unit_velocity(surface->panel_collocation_point(panel, true), k)
                                 * d->wake->doublet_coefficients[k];
                 }
+
+                // 有的论文说尾迹涡面最后有条涡线，加了感觉结果不太对，先注释了
+                // velocity -= d->wake->vortex_line_velocity(surface->panel_collocation_point(panel, true));
             }
         }
     }

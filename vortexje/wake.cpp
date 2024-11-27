@@ -150,6 +150,38 @@ Wake::update_properties(double dt)
 {
 }
 
+Vector3d vortex_line_unit_velocity(const Eigen::Vector3d &x, const Eigen::Vector3d &node_a, const Eigen::Vector3d &node_b)
+{
+    Vector3d r_0 = node_b - node_a;
+    Vector3d r_1 = node_a - x;
+    Vector3d r_2 = node_b - x;
+
+    double r_0_norm = r_0.norm();
+    double r_1_norm = r_1.norm();
+    double r_2_norm = r_2.norm();
+
+    Vector3d r_1xr_2 = r_1.cross(r_2);
+    double r_1xr_2_sqnorm = r_1xr_2.squaredNorm();
+
+    if (r_0_norm < Parameters::zero_threshold ||
+        r_1_norm < Parameters::zero_threshold ||
+        r_2_norm < Parameters::zero_threshold ||
+        r_1xr_2_sqnorm < Parameters::zero_threshold)
+        return {0, 0, 0};
+
+    double r = sqrt(r_1xr_2_sqnorm) / r_0_norm;
+    if (r < Parameters::wake_vortex_core_radius) {
+        // Rankine vortex core segment:
+        return r_1xr_2 / (r_0_norm * pow(Parameters::wake_vortex_core_radius, 2))
+               * (r_0 / r_0_norm).dot(r_1 / r_1_norm - r_2 / r_2_norm);
+
+    } else {
+        // Free vortex segment:
+        return r_1xr_2 / r_1xr_2_sqnorm * r_0.dot(r_1 / r_1_norm - r_2 / r_2_norm);
+
+    }
+}
+
 /**
    Computes the velocity induced by a vortex ring of unit strength.
    
@@ -173,37 +205,21 @@ Wake::vortex_ring_unit_velocity(const Eigen::Vector3d &x, int this_panel) const
         const Vector3d &node_a = nodes[panel_nodes[this_panel][previous_idx]];
         const Vector3d &node_b = nodes[panel_nodes[this_panel][i]];
         
-        Vector3d r_0 = node_b - node_a;
-        Vector3d r_1 = node_a - x;
-        Vector3d r_2 = node_b - x;
-        
-        double r_0_norm = r_0.norm();
-        double r_1_norm = r_1.norm();
-        double r_2_norm = r_2.norm();
-        
-        Vector3d r_1xr_2 = r_1.cross(r_2);
-        double r_1xr_2_sqnorm = r_1xr_2.squaredNorm();
-        
-        if (r_0_norm < Parameters::zero_threshold ||
-            r_1_norm < Parameters::zero_threshold ||
-            r_2_norm < Parameters::zero_threshold ||
-            r_1xr_2_sqnorm < Parameters::zero_threshold)
-            continue;
-
-        double r = sqrt(r_1xr_2_sqnorm) / r_0_norm;
-        if (r < Parameters::wake_vortex_core_radius) {
-            // Rankine vortex core segment:
-            velocity += r_1xr_2 / (r_0_norm * pow(Parameters::wake_vortex_core_radius, 2))
-                * (r_0 / r_0_norm).dot(r_1 / r_1_norm - r_2 / r_2_norm);
-                
-        } else {
-            // Free vortex segment:
-            velocity += r_1xr_2 / r_1xr_2_sqnorm * r_0.dot(r_1 / r_1_norm - r_2 / r_2_norm);
-            
-        }
+        velocity += vortex_line_unit_velocity(x, node_a, node_b);
     }
 
     return one_over_4pi * velocity;
+}
+
+Vector3d Wake::vortex_line_velocity(const Vector3d &x) const {
+    if (last_doublet_coefficients.empty()) {
+        return {0, 0, 0};
+    }
+    Vector3d velocity(0, 0, 0);
+    for (int i = 0; i < lifting_surface->n_spanwise_panels(); i++) {
+        velocity += vortex_line_unit_velocity(x, nodes[i], nodes[i + 1]) * last_doublet_coefficients[i];
+    }
+    return -one_over_4pi * velocity;
 }
 
 Eigen::Vector3d calcVortex(

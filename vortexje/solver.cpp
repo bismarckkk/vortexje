@@ -1886,21 +1886,37 @@ void Solver::refresh_inflow_velocity() {
             }
         }
         auto inflow_velocity = get_inflow_velocity(pos);
+        if (last_inflow_velocity.empty()) {
+            last_inflow_velocity = inflow_velocity;
+        }
         int offset = 0;
         for (auto& body : bodies) {
             for (auto& surface : body->body->non_lifting_surfaces) {
                 for (int i = 0; i < surface->surface->n_panels(); i++) {
-                    surface->surface->panel_velocity_inflow[i] = inflow_velocity[offset];
+                    if (now_inner_step == 0) {
+                        surface->surface->panel_velocity_inflow[i] = inflow_velocity[offset];
+                    } else if (now_inner_step == 1) {
+                        surface->surface->panel_velocity_inflow[i] = (3 * inflow_velocity[offset] - last_inflow_velocity[offset]) / 2;
+                    } else if (now_inner_step == 2) {
+                        surface->surface->panel_velocity_inflow[i] = (inflow_velocity[offset] + last_inflow_velocity[offset]) / 2;
+                    }
                     offset++;
                 }
             }
             for (auto& surface : body->body->lifting_surfaces) {
                 for (int i = 0; i < surface->lifting_surface->n_panels(); i++) {
-                    surface->lifting_surface->panel_velocity_inflow[i] = inflow_velocity[offset];
+                    if (now_inner_step == 0) {
+                        surface->lifting_surface->panel_velocity_inflow[i] = inflow_velocity[offset];
+                    } else if (now_inner_step == 1) {
+                        surface->lifting_surface->panel_velocity_inflow[i] = (3 * inflow_velocity[offset] - last_inflow_velocity[offset]) / 2;
+                    } else if (now_inner_step == 2) {
+                        surface->lifting_surface->panel_velocity_inflow[i] = (inflow_velocity[offset] + last_inflow_velocity[offset]) / 2;
+                    }
                     offset++;
                 }
             }
         }
+        last_inflow_velocity = inflow_velocity;
     }
     if (get_inflow_velocity_py) {
         for (auto& body : bodies) {

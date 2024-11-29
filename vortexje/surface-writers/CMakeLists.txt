@@ -12,8 +12,7 @@ set(
         xdmf-surface-writer.hpp
 )
 
-#find_package(HDF5 1.12.3 REQUIRED)
-find_package(HDF5 1.10.7 REQUIRED)
+find_package(HDF5 ${HDF5_VERSION} REQUIRED)
 
 add_library(surface-writers OBJECT ${SRCS})
 target_link_libraries(surface-writers PUBLIC ${HDF5_LIBRARIES} ConfigProvider)

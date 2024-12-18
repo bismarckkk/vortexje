@@ -1042,6 +1042,30 @@ Solver::update_wakes(double dt)
                         local_wake_velocities[i] = velocity(d->wake->nodes[i]);
                 }
 
+                if (get_inflow_velocity) {
+                    vector<Vector3d, Eigen::aligned_allocator<Vector3d>> pos;
+                    pos.resize(d->wake->n_nodes());
+                    for (int i = 0; i < d->wake->n_nodes(); i++) {
+                        pos[i] = d->wake->nodes[i];
+                    }
+                    auto vel = get_inflow_velocity(pos);
+                    for (int i = 0; i < d->wake->n_nodes(); i++) {
+                        local_wake_velocities[i] += vel[i];
+                    }
+                }
+                if (get_inflow_velocity_py) {
+                    MatrixX3d pos(d->wake->n_nodes(), 3);
+                    MatrixX3d normal(d->wake->n_nodes(), 3);
+                    for (int i = 0; i < d->wake->n_nodes(); i++) {
+                        pos.row(i) = d->wake->nodes[i];
+                        normal.row(i) = d->wake->panel_normal(i);
+                    }
+                    auto vel = get_inflow_velocity_py(pos, normal, d->lifting_surface->n_spanwise_panels());
+                    for (int i = 0; i < d->wake->n_nodes(); i++) {
+                        local_wake_velocities[i] += vel.row(i);
+                    }
+                }
+
                 wake_velocities.push_back(local_wake_velocities);
             }
         }

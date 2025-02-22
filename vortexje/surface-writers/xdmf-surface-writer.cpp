@@ -11,7 +11,7 @@
 #include <highfive/highfive.hpp>
 #include <highfive/eigen.hpp>
 
-#include "../../../utils/UPMConfigProvider.hpp"
+#include "utils/GenConfigProvider.hpp"
 #include "xdmf-surface-writer.hpp"
 
 const char *Vortexje::XdmfSurfaceWriter::file_extension() const {

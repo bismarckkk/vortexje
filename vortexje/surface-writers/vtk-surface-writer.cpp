@@ -11,7 +11,7 @@
 #include <fstream>
 
 #include <vortexje/surface-writers/vtk-surface-writer.hpp>
-#include "../../../utils/UPMConfigProvider.hpp"
+#include "utils/GenConfigProvider.hpp"
 
 using namespace std;
 using namespace Eigen;

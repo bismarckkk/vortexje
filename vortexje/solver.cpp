@@ -28,7 +28,7 @@
 #include <vortexje/parameters.hpp>
 #include <vortexje/boundary-layers/dummy-boundary-layer.hpp>
 
-#include "../../utils/UPMConfigProvider.hpp"
+#include "utils/GenConfigProvider.hpp"
 
 using namespace std;
 using namespace Eigen;
@@ -1530,7 +1530,7 @@ Solver::compute_pressure_coefficient(const Vector3d &surface_velocity, double dp
 {
     double ma_factor = 1;
     if (true) {
-        double ma2 = v_ref_squared / (1.4 * 287 * PCP.temperature);
+        double ma2 = v_ref_squared / (1.4 * 287 * GCP.temperature);
         ma_factor = 1.0 / std::sqrt(1. - ma2);
     }
     double C_p = (1 - (surface_velocity.squaredNorm() + 2 * dphidt) / v_ref_squared) * ma_factor;

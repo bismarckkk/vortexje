@@ -18,7 +18,7 @@
 #include <vortexje/surface.hpp>
 #include <vortexje/parameters.hpp>
 
-#include "../../utils/UPMConfigProvider.hpp"
+#include "utils/GenConfigProvider.hpp"
 
 using namespace std;
 using namespace Eigen;

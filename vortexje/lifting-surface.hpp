@@ -59,6 +59,8 @@ public:
     Eigen::MatrixXi lower_panels;
 
     Eigen::Vector3d lift_dir=Eigen::Vector3d::Zero(), drag_dir=Eigen::Vector3d::Zero();
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > sliceCenters;
+    std::vector<double> liftRecord, dragRecord, tensileRecord, torqueRecord;
     std::vector<double> dx;
 
     int vpNumberPerStep = 10;

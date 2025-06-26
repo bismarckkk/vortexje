@@ -116,55 +116,61 @@ SurfaceBuilder::create_panels_between_shapes(const vector<int> &first_nodes, con
         {
             // Construct a planar quadrangle:
             
-            // Center points around their mean:
-            Vector3d mean(0, 0, 0);
-            for (int i = 0; i < 4; i++)
-                mean += surface.nodes[unique_nodes[i]];
-            mean /= 4.0;
-            
-            MatrixXd X(4, 3);
-            for (int i = 0; i < 4; i++)
-                X.row(i) = surface.nodes[unique_nodes[i]] - mean;
-                
-            // Perform PCA to find dominant directions:
-            SelfAdjointEigenSolver<Matrix3d> solver(X.transpose() * X);
-            
-            Vector3d eigenvalues = solver.eigenvalues();
-            Matrix3d eigenvectors = solver.eigenvectors();
+            if (Parameters::wing_flattening == 0) {
 
-            double min_eigenvalue = numeric_limits<double>::max();
-            int min_eigenvalue_index = -1;
-            for (int i = 0; i < 3; i++) {
-                if (eigenvalues(i) < min_eigenvalue) {
-                    min_eigenvalue = eigenvalues(i);
-                    min_eigenvalue_index = i;
-                }
-            }
-                
-            Vector3d normal = eigenvectors.col(min_eigenvalue_index);
-                
-            // Create new points by projecting onto surface spanned by dominant directions:
-            Vector3d vertices[4];
-            for (int i = 0; i < 4; i++)
-                vertices[i] = surface.nodes[unique_nodes[i]] - (normal * X.row(i)) * normal; 
+                panel_id = surface.add_quadrangle(unique_nodes[0], unique_nodes[1], unique_nodes[2], unique_nodes[3]);
 
-            // Add points to surface:
-            int new_nodes[4];
-            for (int j = 0; j < 4; j++) {
-                // If the new points don't match the original ones, create new nodes:
-                if ((vertices[j] - surface.nodes[unique_nodes[j]]).norm() < Parameters::zero_threshold) {
-                    new_nodes[j] = unique_nodes[j];
-                } else {         
-                    new_nodes[j] = surface.nodes.size();
-                    
-                    surface.nodes.push_back(vertices[j]);
-                    
-                    surface.node_panel_neighbors.push_back(surface.node_panel_neighbors[unique_nodes[j]]);
+            } else if (Parameters::wing_flattening == 1) {
+                // Center points around their mean:
+                Vector3d mean(0, 0, 0);
+                for (int i = 0; i < 4; i++)
+                    mean += surface.nodes[unique_nodes[i]];
+                mean /= 4.0;
+
+                MatrixXd X(4, 3);
+                for (int i = 0; i < 4; i++)
+                    X.row(i) = surface.nodes[unique_nodes[i]] - mean;
+
+                // Perform PCA to find dominant directions:
+                SelfAdjointEigenSolver<Matrix3d> solver(X.transpose() * X);
+
+                Vector3d eigenvalues = solver.eigenvalues();
+                Matrix3d eigenvectors = solver.eigenvectors();
+
+                double min_eigenvalue = numeric_limits<double>::max();
+                int min_eigenvalue_index = -1;
+                for (int i = 0; i < 3; i++) {
+                    if (eigenvalues(i) < min_eigenvalue) {
+                        min_eigenvalue = eigenvalues(i);
+                        min_eigenvalue_index = i;
+                    }
                 }
+
+                Vector3d normal = eigenvectors.col(min_eigenvalue_index);
+
+                // Create new points by projecting onto surface spanned by dominant directions:
+                Vector3d vertices[4];
+                for (int i = 0; i < 4; i++)
+                    vertices[i] = surface.nodes[unique_nodes[i]] - (normal * X.row(i)) * normal;
+
+                // Add points to surface:
+                int new_nodes[4];
+                for (int j = 0; j < 4; j++) {
+                    // If the new points don't match the original ones, create new nodes:
+                    if ((vertices[j] - surface.nodes[unique_nodes[j]]).norm() < Parameters::zero_threshold) {
+                        new_nodes[j] = unique_nodes[j];
+                    } else {
+                        new_nodes[j] = surface.nodes.size();
+
+                        surface.nodes.push_back(vertices[j]);
+
+                        surface.node_panel_neighbors.push_back(surface.node_panel_neighbors[unique_nodes[j]]);
+                    }
+                }
+
+                // Add planar quadrangle:
+                panel_id = surface.add_quadrangle(new_nodes[0], new_nodes[1], new_nodes[2], new_nodes[3]);
             }
-            
-            // Add planar quadrangle:
-            panel_id = surface.add_quadrangle(new_nodes[0], new_nodes[1], new_nodes[2], new_nodes[3]);
             
             break;
         }

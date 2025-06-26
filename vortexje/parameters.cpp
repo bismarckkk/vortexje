@@ -42,3 +42,5 @@ double Parameters::interpolation_layer_thickness      = 1e-6;
 int    Parameters::max_boundary_layer_iterations      = 100;
 
 double Parameters::boundary_layer_iteration_tolerance = numeric_limits<double>::epsilon();
+
+int Parameters::wing_flattening                       = 0;

@@ -109,6 +109,12 @@ public:
        Boundary layer iteration tolerance.
     */
     static double boundary_layer_iteration_tolerance;
+
+    /**
+       0 - No wing flattening.
+       1 - Flattening of the wing by PCA.
+     */
+    static int wing_flattening;
 };
 
 };

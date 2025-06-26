@@ -1250,14 +1250,17 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             }
 
             vector<double> lift, drag, tensile, torque;
+            std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> forces;
             double lift_t = 0, drag_t = 0, tensile_t = 0, torque_t = 0;
             auto chord_p = int(d->lifting_surface->n_panels() / d->lifting_surface->n_spanwise_panels());
             for (int i = 0; i < d->lifting_surface->n_spanwise_panels(); i++) {
                 double dl = 0, dd = 0, dt = 0, dq = 0, torque_q = 0;
+                Eigen::Vector3d total_force = Eigen::Vector3d::Zero();
                 for (int j = 0; j < chord_p; j++) {
                     int idx = i * chord_p + j;
                     Eigen::Vector3d force = 0.5 * fluid_density * surface_velocities.row(offset + idx).squaredNorm()
                                             * d->lifting_surface->panel_surface_areas[idx] * d->lifting_surface->panel_normal(idx);
+                    total_force += force;
                     Eigen::Vector3d tensile_dir = d->lifting_surface->drag_dir.cross(d->lifting_surface->lift_dir);
                     Eigen::Vector3d _r = d->lifting_surface->panel_collocation_point(idx, false) - d->lifting_surface->sliceCenters[i];
                     Eigen::Vector3d torque_vec = _r.cross(force);
@@ -1271,6 +1274,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
                 drag.insert(drag.begin(), dd);
                 tensile.insert(tensile.begin(), dt);
                 torque.insert(torque.begin(), dq);
+                forces.insert(forces.begin(), total_force);
                 lift_t += dl;
                 drag_t += dd;
                 tensile_t += dt;
@@ -1280,6 +1284,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             d->lifting_surface->dragRecord = drag;
             d->lifting_surface->tensileRecord = tensile;
             d->lifting_surface->torqueRecord = torque;
+            d->lifting_surface->forces = forces;
 
             stringstream lift_ss, drag_ss, tensile_ss, torque_ss;
             lift_ss << log_folder << "/" << bd->body->id << "/" << d->surface->id << "_lift.csv";

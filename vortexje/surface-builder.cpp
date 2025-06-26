@@ -118,7 +118,7 @@ SurfaceBuilder::create_panels_between_shapes(const vector<int> &first_nodes, con
             
             if (Parameters::wing_flattening == 0) {
 
-                panel_id = surface.add_quadrangle(unique_nodes[3], unique_nodes[2], unique_nodes[1], unique_nodes[0]);
+                panel_id = surface.add_quadrangle(unique_nodes[0], unique_nodes[1], unique_nodes[2], unique_nodes[3]);
 
             } else if (Parameters::wing_flattening == 1) {
                 // Center points around their mean:
@@ -166,6 +166,9 @@ SurfaceBuilder::create_panels_between_shapes(const vector<int> &first_nodes, con
 
                         surface.node_panel_neighbors.push_back(surface.node_panel_neighbors[unique_nodes[j]]);
                     }
+                    std::cout << "Point " << j << std::endl;
+                    std::cout << "Before " << surface.nodes[unique_nodes[j]] << std::endl;
+                    std::cout << "After  " << surface.nodes[new_nodes[j]] << std::endl;
                 }
 
                 // Add planar quadrangle:

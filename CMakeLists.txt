@@ -1,56 +1,112 @@
-cmake_minimum_required(VERSION 2.8.9)
-project(Vortexje)
+cmake_minimum_required(VERSION 3.10)
+project(vortexje)
 
-# The version number.
-set(Vortexje_VERSION_MAJOR 0)
-set(Vortexje_VERSION_MINOR 2)
-
-# Use C++11.
-include("cmake/set_cxx_norm.cmake")
-set_cxx_norm(CXX_NORM_CXX11)
-
-# Use Eigen3.
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-find_package(Eigen3 3.2.2 REQUIRED)
-
-# Base compiler flags
-if(CMAKE_COMPILER_IS_GNUCXX)
-    set(CMAKE_CXX_FLAGS "-O3 -march=native -Wall") # Optimize for this machine, and turn on compiler warnings.
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3")             # Optimize for this architecture.
-endif()
-
-# Enable PIC for shared library generation.
+include_directories(.)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Use OpenMP.
-find_package(OpenMP)
-if(OPENMP_FOUND)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${OpenMP_C_FLAGS}")
+include(cmake/cpm.cmake)
+
+if(NOT DEFINED VPM_SETUP)
+    if (MSVC)
+        add_definitions(-D_USE_MATH_DEFINES)
+
+        # Download at: https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.3/bin/windows/hdf5-1.12.3-Std-win10_64-vs17.zip
+        set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};C:/Program Files/HDF_Group/HDF5/1.12.3/cmake")
+    else()
+        set(HDF5_VERSION 1.10.7)
+    endif()
 endif()
 
-# Include directories.
-include_directories(${EIGEN3_INCLUDE_DIR})
-include_directories(.)
+find_package(HDF5 ${HDF5_VERSION} REQUIRED)
+find_package(OpenMP REQUIRED)
 
-# Enable testing.
-enable_testing()
+CPMFindPackage(
+    NAME           eigen
+    GIT_TAG        main
+    GIT_REPOSITORY "http://git.bismarck.xyz/bismarck/eigen.git"
+)
+get_target_property(EigenPath eigen INTERFACE_INCLUDE_DIRECTORIES)
+include_directories(${EigenPath})
 
-# Subdirectories.
-add_subdirectory(vortexje)
-add_subdirectory(tests)
-add_subdirectory(examples)
-add_subdirectory(doc)
+CPMFindPackage(
+    NAME           highfive
+    VERSION        2.10.1
+    GIT_REPOSITORY "https://github.com/BlueBrain/HighFive.git"
+    OPTIONS        "HIGHFIVE_USE_BOOST OFF" "HIGHFIVE_USE_EIGEN OFF" "HIGHFIVE_STATIC_HDF5 ON" "HIGHFIVE_EXAMPLES OFF" "HIGHFIVE_BUILD_DOCS OFF" "HIGHFIVE_UNIT_TESTS OFF"
+)
+target_compile_definitions(HighFive INTERFACE HIGHFIVE_USE_EIGEN)
 
-# Install pkg-config file.
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/vortexje.pc.in ${CMAKE_CURRENT_BINARY_DIR}/vortexje.pc @ONLY)
-  
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/vortexje.pc DESTINATION lib/pkgconfig)
+CPMFindPackage(
+    NAME           rply
+    GIT_TAG        main
+    GIT_REPOSITORY "http://git.bismarck.xyz/bismarck/rply.git"
+)
 
-# Build a CPack driven installer package
-include(InstallRequiredSystemLibraries)
-set(CPACK_RESOURCE_FILE_LICENSE  
-    "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
-set(CPACK_PACKAGE_VERSION_MAJOR "${Vortexje_VERSION_MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${Vortexje_VERSION_MINOR}")
-include(CPack)
+CPMFindPackage(
+    NAME           ConfigProvider
+    GIT_TAG        main
+    GIT_REPOSITORY "http://git.bismarck.xyz/bismarck/ConfigProvider.git"
+)
+
+add_subdirectory(vortexje/boundary-layers)
+add_subdirectory(vortexje/empirical-wakes)
+add_subdirectory(vortexje/surface-loaders)
+add_subdirectory(vortexje/surface-writers)
+add_subdirectory(vortexje/field-writers)
+add_subdirectory(vortexje/shape-generators)
+
+set(SRCS
+        vortexje/surface.cpp
+        vortexje/solver.cpp
+        vortexje/parameters.cpp
+        vortexje/lifting-surface.cpp
+        vortexje/wake.cpp
+        vortexje/body.cpp
+        vortexje/surface-builder.cpp
+        vortexje/lifting-surface-builder.cpp
+        vortexje/surface-writer.cpp
+)
+
+set(HDRS
+        vortexje/surface.hpp
+        vortexje/solver.hpp
+        vortexje/parameters.hpp
+        vortexje/lifting-surface.hpp
+        vortexje/wake.hpp
+        vortexje/boundary-layer.hpp
+        vortexje/body.hpp
+        vortexje/surface-builder.hpp
+        vortexje/lifting-surface-builder.hpp
+        vortexje/surface-loader.hpp
+        vortexje/surface-writer.hpp
+        vortexje/field-writer.hpp
+)
+
+add_library(
+        vortexje STATIC ${SRCS}
+)
+
+target_link_libraries(
+        vortexje PUBLIC
+        boundary-layers
+        empirical-wakes
+        surface-loaders
+        surface-writers
+        field-writers
+        shape-generators
+        airfoils
+        rply
+        OpenMP::OpenMP_CXX
+        HighFive
+        eigen
+        ConfigProvider
+)
+
+target_include_directories(vortexje PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+if (MSVC)
+    string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+    target_compile_options(vortexje PRIVATE /bigobj)
+else ()
+    target_compile_options(vortexje PRIVATE -march=native)
+endif ()

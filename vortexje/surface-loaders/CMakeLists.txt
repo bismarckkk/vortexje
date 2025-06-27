@@ -7,3 +7,4 @@ set(HDRS
     ply-surface-loader.hpp)
 
 add_library(surface-loaders OBJECT ${SRCS})
+target_link_libraries(surface-loaders rply)

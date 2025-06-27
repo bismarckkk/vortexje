@@ -10,7 +10,7 @@
 
 #include <vortexje/surface-loaders/ply-surface-loader.hpp>
 
-#include "rply/rply.h"
+#include "rply.h"
 
 using namespace std;
 using namespace Eigen;

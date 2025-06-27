@@ -7,6 +7,7 @@
 #include <fstream>
 #include <vector>
 
+#define H5_USE_EIGEN
 #include <highfive/highfive.hpp>
 #include <highfive/eigen.hpp>
 

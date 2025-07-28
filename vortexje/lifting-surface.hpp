@@ -63,6 +63,9 @@ public:
     std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> forces;
     std::vector<double> liftRecord, dragRecord, tensileRecord, torqueRecord;
     std::vector<double> dx;
+    Eigen::Vector3d center = Eigen::Vector3d::Zero();
+    Eigen::Matrix3d world2rotor = Eigen::Matrix3d::Identity();
+    Eigen::Vector3d totalForce = Eigen::Vector3d::Zero(), totalTorque = Eigen::Vector3d::Zero();
 
     int vpNumberPerStep = 10;
     int vlNumber = 1;

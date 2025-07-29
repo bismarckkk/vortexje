@@ -1255,41 +1255,47 @@ Solver::log(int step_number, SurfaceWriter &writer) const
                 lifting_surface_apparent_velocity_vectors.row(i) = surface_apparent_velocity.row(offset + i);
             }
 
-            vector<double> lift, drag, tensile, torque;
+            vector<double> lift, drag, tensile, torque, normals;
             std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d>> forces;
-            double lift_t = 0, drag_t = 0, tensile_t = 0, torque_t = 0;
+            double lift_t = 0, drag_t = 0, tensile_t = 0, torque_t = 0, normal_t = 0;
             Eigen::Vector3d total_force = Eigen::Vector3d::Zero();
             Eigen::Vector3d total_torque = Eigen::Vector3d::Zero();
             auto chord_p = int(d->lifting_surface->n_panels() / d->lifting_surface->n_spanwise_panels());
             for (int i = 0; i < d->lifting_surface->n_spanwise_panels(); i++) {
-                double dl = 0, dd = 0, dt = 0, dq = 0, torque_q = 0;
+                double dq = 0;
                 Eigen::Vector3d profile_force = Eigen::Vector3d::Zero();
+                Eigen::Vector3d localLiftDir = d->lifting_surface->sliceLiftDirs[i];
+                Eigen::Vector3d localDragDir = d->lifting_surface->sliceDragDirs[i];
+                Eigen::Vector3d localNormalDir = d->lifting_surface->sliceNormalDirs[i];
                 for (int j = 0; j < chord_p; j++) {
                     int idx = i * chord_p + j;
                     Eigen::Vector3d force = 0.5 * fluid_density * surface_velocities.row(offset + idx).squaredNorm()
-                                            * d->lifting_surface->panel_surface_areas[idx] * d->lifting_surface->panel_normal(idx);
-                    profile_force += -force;
-                    total_force += -force;
+                                            * d->lifting_surface->panel_surface_areas[idx] * -d->lifting_surface->panel_normal(idx);
+                    profile_force += force;
                     auto r = d->lifting_surface->panel_collocation_point(idx, false) - d->lifting_surface->center;
-                    total_torque += r.cross(-force);
-                    Eigen::Vector3d tensile_dir = d->lifting_surface->drag_dir.cross(d->lifting_surface->lift_dir);
+                    total_torque += r.cross(force);
+                    Eigen::Vector3d tensile_dir = localDragDir.cross(localLiftDir);
                     Eigen::Vector3d _r = d->lifting_surface->panel_collocation_point(idx, false) - d->lifting_surface->sliceCenters[i];
                     Eigen::Vector3d torque_vec = _r.cross(force);
 
-                    dl -= force.dot(d->lifting_surface->lift_dir);
-                    dd += force.dot(d->lifting_surface->drag_dir);
-                    dt += force.dot(tensile_dir);
                     dq += torque_vec.dot(tensile_dir);
                 }
+                double dl = profile_force.dot(localLiftDir);
+                double dd = profile_force.dot(localDragDir);
+                double dt = profile_force.dot(localLiftDir.cross(localDragDir));
+                double dn = profile_force.dot(localNormalDir);
                 lift.insert(lift.begin(), dl);
                 drag.insert(drag.begin(), dd);
                 tensile.insert(tensile.begin(), dt);
                 torque.insert(torque.begin(), dq);
+                normals.insert(normals.begin(), dn);
                 forces.insert(forces.begin(), profile_force);
                 lift_t += dl;
                 drag_t += dd;
                 tensile_t += dt;
                 torque_t += dq;
+                normal_t += dn;
+                total_force += profile_force;
             }
             d->lifting_surface->liftRecord = lift;
             d->lifting_surface->dragRecord = drag;
@@ -1299,36 +1305,44 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             d->lifting_surface->totalForce = d->lifting_surface->world2rotor * total_force;
             d->lifting_surface->totalTorque = d->lifting_surface->world2rotor * total_torque;
 
-            stringstream lift_ss, drag_ss, tensile_ss, torque_ss;
-            lift_ss << log_folder << "/" << bd->body->id << "/" << d->surface->id << "_lift.csv";
-            drag_ss << log_folder << "/" << bd->body->id << "/" << d->surface->id << "_drag.csv";
-            tensile_ss << log_folder << "/" << bd->body->id << "/" << d->surface->id << "_tensile.csv";
-            torque_ss << log_folder << "/" << bd->body->id << "/" << d->surface->id << "_torque.csv";
+            stringstream lift_ss, drag_ss, tensile_ss, torque_ss, normals_ss;
+            lift_ss << log_folder << "/" << bd->body->id << "/!" << d->surface->id << "_lift.csv";
+            drag_ss << log_folder << "/" << bd->body->id << "/!" << d->surface->id << "_drag.csv";
+            tensile_ss << log_folder << "/" << bd->body->id << "/!" << d->surface->id << "_tensile.csv";
+            normals_ss << log_folder << "/" << bd->body->id << "/!" << d->surface->id << "_normals.csv";
+            torque_ss << log_folder << "/" << bd->body->id << "/!" << d->surface->id << "_torque.csv";
+
             std::ofstream lift_f(lift_ss.str(), std::ios::app);
             std::ofstream drag_f(drag_ss.str(), std::ios::app);
             std::ofstream tensile_f(tensile_ss.str(), std::ios::app);
+            std::ofstream normals_f(normals_ss.str(), std::ios::app);
             std::ofstream torque_f(torque_ss.str(), std::ios::app);
             lift_f << step_number << "," << lift_t;
             drag_f << step_number << "," << drag_t;
             tensile_f << step_number << "," << tensile_t;
+            normals_f << step_number << "," << normal_t;
             torque_f << step_number << "," << torque_t;
             for (int i = 0; i < d->lifting_surface->n_spanwise_panels(); i++) {
                 lift_f << "," << lift[i] / d->lifting_surface->dx[i];
                 drag_f << "," << drag[i] / d->lifting_surface->dx[i];
                 tensile_f << "," << tensile[i] / d->lifting_surface->dx[i];
+                normals_f << "," << normals[i] / d->lifting_surface->dx[i];
                 torque_f << "," << torque[i] / d->lifting_surface->dx[i];
             }
             lift_f << std::endl;
             drag_f << std::endl;
             tensile_f << std::endl;
+            normals_f << std::endl;
             torque_f << std::endl;
             lift_f.flush();
             drag_f.flush();
+            normals_f.flush();
             tensile_f.flush();
             torque_f.flush();
             lift_f.close();
             drag_f.close();
             tensile_f.close();
+            normals_f.close();
             torque_f.close();
 
             offset += d->lifting_surface->n_panels();

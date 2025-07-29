@@ -1065,6 +1065,12 @@ Solver::update_wakes(double dt)
                         local_wake_velocities[i] += vel.row(i);
                     }
                 }
+                for (int i = 0; i < d->wake->n_nodes(); i++) {
+                    double inverse_vel = (local_wake_velocities[i]).dot(d->lifting_surface->drag_dir);
+                    if (inverse_vel > -10) {
+                        local_wake_velocities[i] -= (10 + inverse_vel) * d->lifting_surface->drag_dir;
+                    }
+                }
 
                 wake_velocities.push_back(local_wake_velocities);
             }
@@ -1262,7 +1268,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
                     int idx = i * chord_p + j;
                     Eigen::Vector3d force = 0.5 * fluid_density * surface_velocities.row(offset + idx).squaredNorm()
                                             * d->lifting_surface->panel_surface_areas[idx] * d->lifting_surface->panel_normal(idx);
-                    profile_force += force;
+                    profile_force += -force;
                     total_force += -force;
                     auto r = d->lifting_surface->panel_collocation_point(idx, false) - d->lifting_surface->center;
                     total_torque += r.cross(-force);

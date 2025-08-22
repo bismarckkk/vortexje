@@ -453,7 +453,7 @@ Surface::panel_surface_area(int panel) const
 static void
 source_and_doublet_edge_influence(const Vector3d &x, const Vector3d &node_a, const Vector3d &node_b, double *source_edge_influence, double *doublet_edge_influence)
 {
-    double d = sqrt(pow(node_b(0) - node_a(0), 2) + pow(node_b(1) - node_a(1), 2));
+    double d = sqrt(((node_b(0) - node_a(0)) * (node_b(0) - node_a(0))) + ((node_b(1) - node_a(1)) * (node_b(1) - node_a(1))));
 
     if (d < Parameters::zero_threshold) {
         if (source_edge_influence != NULL)
@@ -468,11 +468,11 @@ source_and_doublet_edge_influence(const Vector3d &x, const Vector3d &node_a, con
     
     double m = (node_b(1) - node_a(1)) / (node_b(0) - node_a(0));
     
-    double e1 = pow(x(0) - node_a(0), 2) + pow(z, 2);
-    double e2 = pow(x(0) - node_b(0), 2) + pow(z, 2);
+    double e1 = ((x(0) - node_a(0)) * (x(0) - node_a(0))) + ((z) * (z));
+    double e2 = ((x(0) - node_b(0)) * (x(0) - node_b(0))) + ((z) * (z));
     
-    double r1 = sqrt(e1 + pow(x(1) - node_a(1), 2));
-    double r2 = sqrt(e2 + pow(x(1) - node_b(1), 2));
+    double r1 = sqrt(e1 + ((x(1) - node_a(1)) * (x(1) - node_a(1))));
+    double r2 = sqrt(e2 + ((x(1) - node_b(1)) * (x(1) - node_b(1))));
     
     double h1 = (x(0) - node_a(0)) * (x(1) - node_a(1));
     double h2 = (x(0) - node_b(0)) * (x(1) - node_b(1));

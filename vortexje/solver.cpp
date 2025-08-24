@@ -1263,10 +1263,11 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             auto chord_p = int(d->lifting_surface->n_panels() / d->lifting_surface->n_spanwise_panels());
             for (int i = 0; i < d->lifting_surface->n_spanwise_panels(); i++) {
                 double dq = 0;
+                int reserve_i = d->lifting_surface->n_spanwise_panels() - 1 - i;
                 Eigen::Vector3d profile_force = Eigen::Vector3d::Zero();
-                Eigen::Vector3d localLiftDir = d->lifting_surface->sliceLiftDirs[i];
-                Eigen::Vector3d localDragDir = d->lifting_surface->sliceDragDirs[i];
-                Eigen::Vector3d localNormalDir = d->lifting_surface->sliceNormalDirs[i];
+                Eigen::Vector3d localLiftDir = d->lifting_surface->sliceLiftDirs[reserve_i];
+                Eigen::Vector3d localDragDir = d->lifting_surface->sliceDragDirs[reserve_i];
+                Eigen::Vector3d localNormalDir = d->lifting_surface->sliceNormalDirs[reserve_i];
                 for (int j = 0; j < chord_p; j++) {
                     int idx = i * chord_p + j;
                     Eigen::Vector3d force = 0.5 * fluid_density * surface_velocities.row(offset + idx).squaredNorm()
@@ -1274,8 +1275,8 @@ Solver::log(int step_number, SurfaceWriter &writer) const
                     profile_force += force;
                     auto r = d->lifting_surface->panel_collocation_point(idx, false) - d->lifting_surface->center;
                     total_torque += r.cross(force);
-                    Eigen::Vector3d tensile_dir = localDragDir.cross(localLiftDir);
-                    Eigen::Vector3d _r = d->lifting_surface->panel_collocation_point(idx, false) - d->lifting_surface->sliceCenters[i];
+                    Eigen::Vector3d tensile_dir = localLiftDir.cross(localDragDir);
+                    Eigen::Vector3d _r = d->lifting_surface->panel_collocation_point(idx, false) - d->lifting_surface->sliceCenters[reserve_i];
                     Eigen::Vector3d torque_vec = _r.cross(force);
 
                     dq += torque_vec.dot(tensile_dir);
@@ -1284,12 +1285,12 @@ Solver::log(int step_number, SurfaceWriter &writer) const
                 double dd = profile_force.dot(localDragDir);
                 double dt = profile_force.dot(localLiftDir.cross(localDragDir));
                 double dn = profile_force.dot(localNormalDir);
-                lift.insert(lift.begin(), dl);
-                drag.insert(drag.begin(), dd);
-                tensile.insert(tensile.begin(), dt);
-                torque.insert(torque.begin(), dq);
-                normals.insert(normals.begin(), dn);
-                forces.insert(forces.begin(), profile_force);
+                lift.push_back(dl / d->lifting_surface->dx[i]);
+                drag.push_back(dd / d->lifting_surface->dx[i]);
+                tensile.push_back(dt / d->lifting_surface->dx[i]);
+                torque.push_back(dq / d->lifting_surface->dx[i]);
+                normals.push_back(dn / d->lifting_surface->dx[i]);
+                forces.push_back(profile_force / d->lifting_surface->dx[i]);
                 lift_t += dl;
                 drag_t += dd;
                 tensile_t += dt;
@@ -1323,11 +1324,11 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             normals_f << step_number << "," << normal_t;
             torque_f << step_number << "," << torque_t;
             for (int i = 0; i < d->lifting_surface->n_spanwise_panels(); i++) {
-                lift_f << "," << lift[i] / d->lifting_surface->dx[i];
-                drag_f << "," << drag[i] / d->lifting_surface->dx[i];
-                tensile_f << "," << tensile[i] / d->lifting_surface->dx[i];
-                normals_f << "," << normals[i] / d->lifting_surface->dx[i];
-                torque_f << "," << torque[i] / d->lifting_surface->dx[i];
+                lift_f << "," << lift[i];
+                drag_f << "," << drag[i];
+                tensile_f << "," << tensile[i];
+                normals_f << "," << normals[i];
+                torque_f << "," << torque[i];
             }
             lift_f << std::endl;
             drag_f << std::endl;

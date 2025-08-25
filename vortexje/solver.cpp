@@ -1291,8 +1291,8 @@ Solver::log(int step_number, SurfaceWriter &writer) const
                 torque.push_back(dq / d->lifting_surface->dx[i]);
                 normals.push_back(dn / d->lifting_surface->dx[i]);
                 forces.push_back(profile_force / d->lifting_surface->dx[i]);
-                lift_t += dl;
-                drag_t += dd;
+                lift_t += profile_force.dot(d->lifting_surface->lift_dir);
+                drag_t += profile_force.dot(d->lifting_surface->drag_dir);
                 tensile_t += dt;
                 torque_t += dq;
                 normal_t += dn;

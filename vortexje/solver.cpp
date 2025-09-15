@@ -1260,6 +1260,9 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             double lift_t = 0, drag_t = 0, tensile_t = 0, torque_t = 0, normal_t = 0;
             Eigen::Vector3d total_force = Eigen::Vector3d::Zero();
             Eigen::Vector3d total_torque = Eigen::Vector3d::Zero();
+
+            Eigen::Vector3d bladeLiftDir = d->lifting_surface->lift_dir;
+            Eigen::Vector3d bladeDragDir = d->lifting_surface->drag_dir;
             auto chord_p = int(d->lifting_surface->n_panels() / d->lifting_surface->n_spanwise_panels());
             for (int i = 0; i < d->lifting_surface->n_spanwise_panels(); i++) {
                 double dq = 0;
@@ -1267,6 +1270,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
                 Eigen::Vector3d profile_force = Eigen::Vector3d::Zero();
                 Eigen::Vector3d localLiftDir = d->lifting_surface->sliceLiftDirs[reserve_i];
                 Eigen::Vector3d localDragDir = d->lifting_surface->sliceDragDirs[reserve_i];
+                Eigen::Vector3d localTensileDir = localLiftDir.cross(localDragDir);
                 Eigen::Vector3d localNormalDir = d->lifting_surface->sliceNormalDirs[reserve_i];
                 for (int j = 0; j < chord_p; j++) {
                     int idx = i * chord_p + j;
@@ -1275,15 +1279,14 @@ Solver::log(int step_number, SurfaceWriter &writer) const
                     profile_force += force;
                     auto r = d->lifting_surface->panel_collocation_point(idx, false) - d->lifting_surface->center;
                     total_torque += r.cross(force);
-                    Eigen::Vector3d tensile_dir = localLiftDir.cross(localDragDir);
                     Eigen::Vector3d _r = d->lifting_surface->panel_collocation_point(idx, false) - d->lifting_surface->sliceCenters[reserve_i];
                     Eigen::Vector3d torque_vec = _r.cross(force);
 
-                    dq += torque_vec.dot(tensile_dir);
+                    dq += torque_vec.dot(localTensileDir);
                 }
-                double dl = profile_force.dot(localLiftDir);
-                double dd = profile_force.dot(localDragDir);
-                double dt = profile_force.dot(localLiftDir.cross(localDragDir));
+                double dl = profile_force.dot(bladeLiftDir);
+                double dd = profile_force.dot(bladeDragDir);
+                double dt = profile_force.dot(localTensileDir);
                 double dn = profile_force.dot(localNormalDir);
                 lift.push_back(dl / d->lifting_surface->dx[i]);
                 drag.push_back(dd / d->lifting_surface->dx[i]);
@@ -1291,8 +1294,8 @@ Solver::log(int step_number, SurfaceWriter &writer) const
                 torque.push_back(dq / d->lifting_surface->dx[i]);
                 normals.push_back(dn / d->lifting_surface->dx[i]);
                 forces.push_back(profile_force / d->lifting_surface->dx[i]);
-                lift_t += profile_force.dot(d->lifting_surface->lift_dir);
-                drag_t += profile_force.dot(d->lifting_surface->drag_dir);
+                lift_t += dl;
+                drag_t += dd;
                 tensile_t += dt;
                 torque_t += dq;
                 normal_t += dn;

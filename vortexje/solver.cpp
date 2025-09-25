@@ -1284,16 +1284,19 @@ Solver::log(int step_number, SurfaceWriter &writer) const
 
                     dq += torque_vec.dot(localTensileDir);
                 }
+                double dx = d->lifting_surface->dx[reserve_i];
+
                 double dl = profile_force.dot(bladeLiftDir);
                 double dd = profile_force.dot(bladeDragDir);
                 double dt = profile_force.dot(localTensileDir);
                 double dn = profile_force.dot(localNormalDir);
-                lift.push_back(dl / d->lifting_surface->dx[i]);
-                drag.push_back(dd / d->lifting_surface->dx[i]);
-                tensile.push_back(dt / d->lifting_surface->dx[i]);
-                torque.push_back(dq / d->lifting_surface->dx[i]);
-                normals.push_back(dn / d->lifting_surface->dx[i]);
-                forces.push_back(profile_force / d->lifting_surface->dx[i]);
+
+                lift.insert(lift.begin(), dl / dx);
+                drag.insert(drag.begin(), dd / dx);
+                tensile.insert(tensile.begin(), dt / dx);
+                torque.insert(torque.begin(), dq / dx);
+                normals.insert(normals.begin(), dn / dx);
+                forces.insert(forces.begin(), profile_force / dx);
                 lift_t += dl;
                 drag_t += dd;
                 tensile_t += dt;

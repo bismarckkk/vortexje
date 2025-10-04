@@ -1274,11 +1274,17 @@ Solver::log(int step_number, SurfaceWriter &writer) const
                 Eigen::Vector3d localNormalDir = d->lifting_surface->sliceNormalDirs[reserve_i];
                 for (int j = 0; j < chord_p; j++) {
                     int idx = i * chord_p + j;
-                    Eigen::Vector3d force = 0.5 * fluid_density * surface_velocities.row(offset + idx).squaredNorm()
+                    double v_ref_squared = (d->surface->panel_velocity[i] - freestream_velocity).squaredNorm();
+                    double ma_factor = 1;
+                    if (true) {
+                        double ma2 = v_ref_squared / (1.4 * 287 * GCP.temperature);
+                        ma_factor = 1.0 / std::sqrt(1. - ma2);
+                    }
+                    Eigen::Vector3d force = 0.5 * fluid_density * surface_velocities.row(offset + idx).squaredNorm() * ma_factor
                                             * d->lifting_surface->panel_surface_areas[idx] * -d->lifting_surface->panel_normal(idx);
                     profile_force += force;
                     auto r = d->lifting_surface->panel_collocation_point(idx, false) - d->lifting_surface->center;
-                    total_torque += r.cross(force);
+                    total_torque += r.cross(force) * ma_factor;
                     Eigen::Vector3d _r = d->lifting_surface->panel_collocation_point(idx, false) - d->lifting_surface->sliceCenters[reserve_i];
                     Eigen::Vector3d torque_vec = _r.cross(force);
 

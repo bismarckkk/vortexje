@@ -1284,7 +1284,7 @@ Solver::log(int step_number, SurfaceWriter &writer) const
                                             * d->lifting_surface->panel_surface_areas[idx] * -d->lifting_surface->panel_normal(idx);
                     profile_force += force;
                     auto r = d->lifting_surface->panel_collocation_point(idx, false) - d->lifting_surface->center;
-                    total_torque += r.cross(force) * ma_factor * 1.1;
+                    total_torque += r.cross(force) * ma_factor;
                     Eigen::Vector3d _r = d->lifting_surface->panel_collocation_point(idx, false) - d->lifting_surface->sliceCenters[reserve_i];
                     Eigen::Vector3d torque_vec = _r.cross(force);
 
@@ -1292,10 +1292,10 @@ Solver::log(int step_number, SurfaceWriter &writer) const
                 }
                 double dx = d->lifting_surface->dx[reserve_i];
 
-                double dl = profile_force.dot(bladeLiftDir);
-                double dd = profile_force.dot(bladeDragDir);
+                double dl = profile_force.dot(bladeLiftDir) * GCP.liftFactor;
+                double dd = profile_force.dot(bladeDragDir) * GCP.dragFactor;
                 double dt = profile_force.dot(localTensileDir);
-                double dn = profile_force.dot(localNormalDir);
+                double dn = profile_force.dot(localNormalDir) * GCP.liftFactor;
 
                 lift.insert(lift.begin(), dl / dx);
                 drag.insert(drag.begin(), dd / dx);
@@ -1315,8 +1315,8 @@ Solver::log(int step_number, SurfaceWriter &writer) const
             d->lifting_surface->tensileRecord = tensile;
             d->lifting_surface->torqueRecord = torque;
             d->lifting_surface->forces = forces;
-            d->lifting_surface->totalForce = d->lifting_surface->world2rotor * total_force;
-            d->lifting_surface->totalTorque = d->lifting_surface->world2rotor * total_torque;
+            d->lifting_surface->totalForce = d->lifting_surface->world2rotor * total_force * GCP.liftFactor;
+            d->lifting_surface->totalTorque = d->lifting_surface->world2rotor * total_torque * GCP.dragFactor;
 
             stringstream lift_ss, drag_ss, tensile_ss, torque_ss, normals_ss;
             lift_ss << log_folder << "/" << bd->body->id << "/!" << d->surface->id << "_lift.csv";
